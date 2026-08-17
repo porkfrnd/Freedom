@@ -1,0 +1,117 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Playlists{% endblock %}
+{% block page_title %}Playlists{% endblock %}
+
+{% block panel %}
+<div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+  <p class="text-dim text-sm">Every setlist the server has shared. Tap one to open it.</p>
+  <div class="flex items-center gap-2 bg-backstage/60 border border-white/10 rounded-pill p-1" role="group" aria-label="Playlist filter">
+    <a href="{{ url_for('dashboard.playlists', mine=0) }}"
+       class="btn {% if not mine %}btn-primary{% else %}btn-ghost{% endif %} !py-1.5 !px-4 text-xs"
+       {% if not mine %}aria-current="page"{% endif %}>Public</a>
+    <a href="{{ url_for('dashboard.playlists', mine=1) }}"
+       class="btn {% if mine %}btn-primary{% else %}btn-ghost{% endif %} !py-1.5 !px-4 text-xs"
+       {% if mine %}aria-current="page"{% endif %}>Mine</a>
+  </div>
+</div>
+
+{% if playlists %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="playlist-grid">
+  {% for playlist in playlists %}
+  <article class="glass-panel p-6 flex flex-col" data-playlist-card="{{ playlist.id }}">
+    <div class="flex items-start justify-between gap-3 mb-4">
+      <h2 class="font-display font-bold text-lg leading-tight">{{ playlist.name }}</h2>
+      {# Equalizer — usage #3 of exactly 3: "now playing" next to an active
+         playlist (§5.1) #}
+      <span class="shrink-0" data-now-playing-badge hidden aria-label="Now playing">
+        <span class="eq eq--tiny" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2 mb-4">
+      <span class="mono text-xs px-2.5 py-1 rounded-pill bg-white/5 border border-white/10 text-dim">{{ playlist.id }}</span>
+      <span class="badge badge-muted">{{ playlist.track_count }} track{{ '' if playlist.track_count == 1 else 's' }}</span>
+      {% if not playlist.is_public %}<span class="badge badge-warning">private</span>{% endif %}
+    </div>
+
+    <div class="flex items-center gap-2 mb-5">
+      {% if playlist.creator and playlist.creator.avatar_hash %}
+        <img class="w-7 h-7 rounded-full" src="https://cdn.discordapp.com/avatars/{{ playlist.creator.discord_id }}/{{ playlist.creator.avatar_hash }}.png?size=32" alt="{{ playlist.creator.username }}'s avatar">
+      {% else %}
+        <span class="w-7 h-7 rounded-full bg-violet grid place-items-center font-display font-bold text-xs" aria-hidden="true">{{ (playlist.creator.username[:1] if playlist.creator else '?') | upper }}</span>
+      {% endif %}
+      <span class="text-sm text-dim truncate">{{ playlist.creator.username if playlist.creator else 'Unknown dancer' }}</span>
+    </div>
+
+    <div class="mt-auto flex items-center gap-2">
+      {% if playlist.creator_discord_id == (current_claims.get('discord_id') if current_claims else -1) or (current_claims.get('is_admin') if current_claims else false) %}
+        <a href="{{ url_for('dashboard.playlist_editor', playlist_id=playlist.id) }}" class="btn btn-ghost flex-1">Edit setlist</a>
+      {% endif %}
+      <button type="button"
+              class="btn btn-primary flex-1"
+              data-copy="/play-playlist {{ playlist.id }}"
+              aria-label="Copy the play command for {{ playlist.name }}">
+        Play in Discord
+      </button>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+{# Empty state is an invitation, not an apology (§5.10) #}
+<div class="glass-panel p-12 text-center">
+  <p class="font-display text-xl font-bold mb-2">{% if mine %}No playlists yet.{% else %}No public playlists yet.{% endif %}</p>
+  <p class="text-dim text-sm mb-6">
+    {% if mine %}
+      Be the first to share one — a setlist is a promise to the crew.
+    {% else %}
+      Be the first to share one.
+    {% endif %}
+  </p>
+  {% if mine %}
+    <a href="#" onclick="document.getElementById('new-playlist-name').focus(); return false;" class="btn btn-accent">Create a playlist</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{# Quick-create for the "Mine" empty state — POST via the API with CSRF #}
+{% if mine and not playlists %}
+<div id="new-playlist-form" class="glass-panel p-6 mt-6">
+  <h3 class="font-display font-bold mb-4">Name your first setlist</h3>
+  <form id="create-playlist-form" data-no-loading class="flex flex-col sm:flex-row gap-3">
+    <label class="sr-only" for="new-playlist-name">Playlist name</label>
+    <input id="new-playlist-name" name="name" type="text" maxlength="80" required placeholder="e.g. Warm-up Wednesday" class="flex-1 !bg-voidink/60 !border-white/12 rounded-input px-4 py-2.5 text-sm focus:!border-cyan">
+    <button type="submit" class="btn btn-accent">Create</button>
+  </form>
+  <p class="text-xs text-dim mt-3">You'll add tracks right after.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById("create-playlist-form");
+    if (!form) return;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = document.getElementById("new-playlist-name").value.trim();
+      if (!name) return;
+      fetch("/api/playlists", {
+        method: "POST",
+        headers: { "X-CSRF-Token": document.cookie.match(/ffd_csrf=([^;]+)/)?.[1] || "" },
+        body: JSON.stringify({ name: name, tracks: [], is_public: true })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+          if (res.ok && res.data.playlist) {
+            window.location.href = "/playlists/" + res.data.playlist.id;
+          } else {
+            toast(res.data && res.data.error ? res.data.error.message : "Couldn't create that playlist.", "error");
+          }
+        })
+        .catch(function () { toast("Couldn't reach the server. Try again.", "error"); });
+    });
+  })();
+</script>
+{% endblock %}

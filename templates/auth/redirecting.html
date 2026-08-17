@@ -1,0 +1,64 @@
+{# Login completion page (§5.11 shared states).
+
+The OAuth callback returns THIS page (a same-origin 200) so the session
+cookie is set as a first-party cookie on a top-level navigation to our own
+origin — never on a 302 inside the cross-site Discord → callback redirect
+chain, which some browsers (strict tracking protection, redirect-chain
+handling) refuse to store. The page then verifies the cookie actually
+stuck (``/auth/cookie-echo``) before bouncing to the dashboard; if it
+failed, it says so explicitly instead of silently bouncing back to the
+landing page. The equalizer is the app's loading indicator (§5.1).
+#}
+{% extends "base.html" %}
+{% block title %}Signing you in… — Freedom for Dance{% endblock %}
+{% block body %}
+<main class="min-h-screen flex items-center justify-center px-6">
+  <div id="signing-in" class="text-center">
+    {% include "partials/equalizer.html" %}
+    <h1 class="mt-6 font-display text-2xl text-[--paper]">Signing you in…</h1>
+    <p class="mt-2 text-sm text-[--paper-dim]">
+      Just a second — the stage lights are warming up.
+    </p>
+    <noscript>
+      <a href="{{ next_url }}" class="mt-6 inline-block text-sm text-[--curtain-violet] underline">
+        Continue to the dashboard
+      </a>
+    </noscript>
+  </div>
+  <div id="cookies-blocked" class="text-center" hidden>
+    <h1 class="font-display text-2xl text-[--paper]">Cookies are being blocked</h1>
+    <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[--paper-dim]">
+      Your sign-in worked, but this browser isn't saving the session cookie,
+      so it can't keep you signed in. Allow cookies for this site (or turn
+      off strict tracking protection / cookie-blocking extensions for it),
+      then log in again.
+    </p>
+    <a href="{{ next_url }}"
+       class="mt-6 inline-block rounded-full bg-[--spotlight-magenta] px-5 py-2 text-sm font-semibold text-[--void-ink] transition-colors duration-150 hover:opacity-90">
+      Try the dashboard anyway
+    </a>
+  </div>
+</main>
+<script>
+  (function () {
+    var nextUrl = "{{ next_url }}";
+    // Give the browser a beat to store the cookie, then confirm it stuck
+    // via the same-origin echo endpoint before redirecting.
+    setTimeout(function () {
+      fetch("/auth/cookie-echo", { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.session_present) {
+            window.location.replace(nextUrl);
+          } else {
+            document.getElementById("signing-in").hidden = true;
+            document.getElementById("cookies-blocked").hidden = false;
+          }
+        })
+        .catch(function () {
+          window.location.replace(nextUrl);
+        });
+    }, 400);
+  })();
+</script>
+{% endblock %}

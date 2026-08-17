@@ -1,0 +1,67 @@
+# Render blueprint (§10) — single web service + managed Postgres.
+# The preDeployCommand runs `alembic upgrade head` against the live
+# database BEFORE the web process starts, so schema is always current.
+
+databases:
+  - name: freedom-for-dance-db
+    databaseName: freedomfordance
+    plan: starter
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: freedom-for-dance
+    runtime: python
+    plan: starter
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: alembic upgrade head
+    startCommand: gunicorn -w 1 --threads 4 -k gthread app:app
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVarGroup: ffd-app-env
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: freedom-for-dance-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: LOG_FORMAT
+        value: json
+
+# Fill these in the Render dashboard (Sync: false → manual entries).
+# The keys mirror .env.example 1:1.
+envVarGroups:
+  - name: ffd-app-env
+    envVars:
+      - key: BASE_URL
+        value: https://freedom-for-dance.onrender.com
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: DISCORD_ANNOUNCEMENTS_CHANNEL_ID
+        sync: false
+      - key: DISCORD_MODERATION_CHANNEL_ID
+        sync: false
+      - key: MODERATOR_ROLE_IDS
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: LAVALINK_URI
+        sync: false
+      - key: LAVALINK_PASSWORD
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: JWT_TTL_HOURS
+        value: "12"
+      - key: ADMIN_CHECK_CACHE_SECONDS
+        value: "300"

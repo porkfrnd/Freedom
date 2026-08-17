@@ -1,0 +1,4 @@
+{% extends "errors/base.html" %}
+{% block error_code %}503{% endblock %}
+{% block heading %}House lights are down{% endblock %}
+{% block message %}{{ message or "The service isn't reachable right now. Give it a moment and try again." }}{% endblock %}

@@ -1,0 +1,9 @@
+{# Brand lockup (§5.7 imagery): the dancer mark on its navy tile.
+   One source, sized per context via the `logo_class` variable (height in
+   Tailwind units; width follows the 1.83:1 aspect automatically). #}
+<img src="{{ url_for('static', filename='img/logo.jpeg') }}"
+     alt="Freedom for Dance logo"
+     width="480"
+     height="262"
+     class="rounded-lg border border-white/10 {{ logo_class | default('h-9 w-auto') }}"
+     loading="eager">

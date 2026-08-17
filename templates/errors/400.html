@@ -1,0 +1,4 @@
+{% extends "errors/base.html" %}
+{% block error_code %}400{% endblock %}
+{% block heading %}That didn't go through{% endblock %}
+{% block message %}{{ message or "The request was malformed or expired. Refresh the page and try again." }}{% endblock %}

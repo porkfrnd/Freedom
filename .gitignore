@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtualenv
+.venv/
+venv/
+env/
+# This repo's venv lives at the project root (bin/include/lib/pyvenv.cfg)
+/bin/
+/include/
+/lib/
+/lib64
+/pyvenv.cfg
+
+# Freebuff tooling (not part of the project)
+/.freebuff/
+/skills/
+
+# Local databases (dev fallback)
+*.db
+*.sqlite3
+
+# Environment / secrets
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Render / deploy artifacts
+render-debug.log

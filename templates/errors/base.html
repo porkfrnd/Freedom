@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ self.error_code() }} · Freedom for Dance{% endblock %}
+
+{% block body %}
+<main id="main" class="min-h-screen grid place-items-center px-6">
+  <div class="glass-panel max-w-md w-full p-10 text-center page-enter">
+    <p class="mono text-4xl font-bold bg-gradient-to-r from-violet to-magenta bg-clip-text text-transparent mb-4">{% block error_code %}500{% endblock %}</p>
+    <h1 class="font-display text-2xl font-bold mb-4">{% block heading %}Something flickered{% endblock %}</h1>
+    <p class="text-dim leading-base mb-8">{% block message %}Give it a moment and try again.{% endblock %}</p>
+    <div class="flex flex-col gap-3">
+      <a href="{{ url_for('dashboard.playlists') }}" class="btn btn-primary w-full">Back to dashboard</a>
+      <a href="{{ url_for('main.index') }}" class="btn btn-ghost w-full">Landing page</a>
+    </div>
+  </div>
+</main>
+{% endblock %}

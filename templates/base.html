@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Freedom for Dance{% endblock %}</title>
+  <meta name="description" content="Dancing is a form of expression and we must push it forward.">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='img/logo.jpeg') }}">
+
+  {# Typography: display + body + mono, loaded via CDN (§5.3) — never the
+     system default stack. #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800&f[]=clash-display@500,600,700&display=swap" rel="stylesheet">
+
+  {# Tailwind for layout utilities ONLY — every color/type decision comes
+     from tokens.css (§5). The CDN config maps token names so no raw
+     framework palette classes ever appear in templates. #}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            voidink: "var(--void-ink)",
+            backstage: "var(--backstage)",
+            violet: "var(--curtain-violet)",
+            magenta: "var(--spotlight-magenta)",
+            cyan: "var(--marquee-cyan)",
+            paper: "var(--paper)",
+            dim: "var(--paper-dim)",
+            success: "var(--success)",
+            warning: "var(--warning)",
+            danger: "var(--danger)",
+          },
+          fontFamily: {
+            display: "var(--font-display)",
+            body: "var(--font-body)",
+            mono: "var(--font-mono)",
+          },
+          borderRadius: {
+            input: "8px",
+            card: "16px",
+            hero: "24px",
+          },
+          maxWidth: { shell: "1280px" },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-voidink text-paper font-body antialiased">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="stage-glow" aria-hidden="true"></div>
+
+  {% block body %}{% endblock %}
+
+  {# Toasts (§5.8): aria-live region, flashed messages rendered as JSON for
+     the JS to display with the same verb as the action (§5.10). #}
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <script>window.__flashed = {{ messages | tojson }};</script>
+    {% endif %}
+  {% endwith %}
+
+  {# App-wide loading indicator = the equalizer, never a spinner (§5.1). #}
+  <div id="loading-eq" class="loading-eq" aria-hidden="true">
+    {% include "partials/equalizer.html" %}
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
