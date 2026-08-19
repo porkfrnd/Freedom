@@ -1,5 +1,4 @@
-"""Guard tests (§9.1 minimum: guild-guard rejection, admin-guard rejection
-including the "stale cookie says admin, live check says no" case)."""
+"""Guard tests — login required, admin required."""
 
 from __future__ import annotations
 
@@ -7,29 +6,32 @@ from extensions import db
 from models import User
 from services.auth import create_session_token
 
-from conftest import make_token, mock_live_admin
+from conftest import make_token
 
-
-# ── Guild guard (§7.2) ──────────────────────────────────────────────────────
 
 def test_dashboard_requires_login(client):
-    resp = client.get("/dashboard")
+    resp = client.get("/dashboard", follow_redirects=False)
     assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
 
 
-def test_dashboard_requires_guild_membership(app, client):
-    token = make_token(app, 999, "outsider", guild_member=False)
-    client.set_cookie("ffd_session", token)
-    resp = client.get("/dashboard")
-    assert resp.status_code == 403
-    assert b"You'll need to be a member" in resp.data
+def test_home_accessible_to_member(member_client):
+    resp = member_client.get("/")
+    assert resp.status_code == 200
 
 
-def test_not_member_page_copy(client):
-    resp = client.get("/not-member")
-    assert resp.status_code == 403
-    assert b"Join the server, then come back." in resp.data
+def test_announcements_accessible_to_member(member_client):
+    resp = member_client.get("/announcements")
+    assert resp.status_code == 200
+
+
+def test_challenges_accessible_to_member(member_client):
+    resp = member_client.get("/challenges")
+    assert resp.status_code == 200
+
+
+def test_giveaways_accessible_to_member(member_client):
+    resp = member_client.get("/giveaways")
+    assert resp.status_code == 200
 
 
 def test_playlists_accessible_to_member(member_client):
@@ -37,98 +39,68 @@ def test_playlists_accessible_to_member(member_client):
     assert resp.status_code == 200
 
 
-def test_api_rejects_non_member(app, client):
-    token = make_token(app, 999, "outsider", guild_member=False)
-    client.set_cookie("ffd_session", token)
+def test_api_rejects_unauthenticated(client):
     resp = client.get("/api/playlists")
-    assert resp.status_code == 403
-    assert resp.get_json()["error"]["code"] == "not_a_member"
+    assert resp.status_code == 401
 
 
-# ── Session invalidation (§3.2) ─────────────────────────────────────────────
+def _csrf(client):
+    from conftest import csrf_of
+    return csrf_of(client)
 
-def test_session_invalidated_when_membership_check_bumps_version(app, client):
+
+def _make_member(app, user_id=333, username="member-only"):
+    from werkzeug.security import generate_password_hash
     with app.app_context():
-        user = User(discord_id=555, username="moved-on", is_admin=False, session_version=1)
-        db.session.add(user)
-        db.session.commit()
-    token = make_token(app, 555, "moved-on", session_version=1)
+        if db.session.get(User, user_id) is None:
+            db.session.add(User(
+                id=user_id, username=username, email=f"{username}@test.com",
+                password_hash=generate_password_hash("password123"),
+                is_admin=False,
+            ))
+            db.session.commit()
+
+
+def test_non_admin_blocked_from_creating_announcement(app, client):
+    _make_member(app)
+    token = make_token(app, 333, "member-only")
     client.set_cookie("ffd_session", token)
-
-    # The background membership check found the user left the guild.
-    with app.app_context():
-        user = db.session.get(User, 555)
-        user.is_admin = False
-        user.session_version += 1
-        db.session.commit()
-
-    resp = client.get("/playlists")
-    assert resp.status_code == 302  # redirected to landing
-    assert resp.headers["Location"].endswith("/")
-
-
-# ── Admin guard (§7.3, §3.2) ────────────────────────────────────────────────
-
-def test_admin_page_requires_login(client):
-    resp = client.get("/giveaways")
-    assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
-
-
-def test_non_admin_member_blocked(app, client, monkeypatch):
-    mock_live_admin(monkeypatch, is_member=True, is_admin=False)
-    token = make_token(app, 333, "member-only", is_admin=False, guild_member=True)
-    client.set_cookie("ffd_session", token)
-    resp = client.get("/giveaways")
+    client.get("/announcements")  # seed CSRF cookie
+    csrf = _csrf(client)
+    resp = client.post("/announcements", data={"title": "X", "content": "Y", "csrf_token": csrf})
     assert resp.status_code == 403
 
 
-def test_stale_admin_cookie_blocked_by_live_check(app, client, monkeypatch):
-    """Cookie claims admin; the live check says no → blocked (§9.1)."""
-    with app.app_context():
-        db.session.add(User(discord_id=444, username="has-been", is_admin=True))
-        db.session.commit()
-    token = make_token(app, 444, "has-been", is_admin=True, guild_member=True)
+def test_non_admin_blocked_from_creating_challenge(app, client):
+    _make_member(app)
+    token = make_token(app, 333, "member-only")
     client.set_cookie("ffd_session", token)
-    mock_live_admin(monkeypatch, is_member=True, is_admin=False)
-
-    resp = client.get("/giveaways")
+    client.get("/challenges")  # seed CSRF cookie
+    csrf = _csrf(client)
+    resp = client.post("/challenges", data={"title": "X", "description": "Y", "csrf_token": csrf})
     assert resp.status_code == 403
-    assert b"That's not your stage" in resp.data
-
-    # The stale claim was corrected in the DB and the cookie invalidated.
-    with app.app_context():
-        user = db.session.get(User, 444)
-        assert user.is_admin is False
-        assert user.session_version == 2
-    assert "ffd_session" in resp.headers.get("Set-Cookie", "")  # cleared
 
 
-def test_live_check_passes_admin(app, client, monkeypatch):
-    mock_live_admin(monkeypatch, is_member=True, is_admin=True)
-    token = make_token(app, 222, "bob", is_admin=True, guild_member=True)
+def test_non_admin_blocked_from_creating_giveaway(app, client):
+    _make_member(app)
+    token = make_token(app, 333, "member-only")
     client.set_cookie("ffd_session", token)
-    resp = client.get("/giveaways")
+    client.get("/giveaways")  # seed CSRF cookie
+    csrf = _csrf(client)
+    resp = client.post("/giveaways", data={"prize": "X", "csrf_token": csrf})
+    assert resp.status_code == 403
+
+
+def test_admin_can_access_announcements(admin_client):
+    resp = admin_client.get("/announcements")
     assert resp.status_code == 200
-    assert b"Run a giveaway" in resp.data
 
 
-def test_live_check_failure_fails_closed(app, client, monkeypatch):
-    """Discord API unreachable → fail closed, never trust the cookie."""
-    monkeypatch.setattr(
-        "utils.decorators.discord_api.verify_membership_and_admin",
-        lambda guild_id, user_id, config: (None, None),
-    )
-    token = make_token(app, 222, "bob", is_admin=True, guild_member=True)
-    client.set_cookie("ffd_session", token)
-    resp = client.get("/giveaways")
-    assert resp.status_code == 503
+def test_admin_can_access_challenges(admin_client):
+    resp = admin_client.get("/challenges")
+    assert resp.status_code == 200
 
 
-def test_left_guild_invalidates_session(app, client, monkeypatch):
-    mock_live_admin(monkeypatch, is_member=False, is_admin=False)
-    token = make_token(app, 222, "bob", is_admin=True, guild_member=True)
-    client.set_cookie("ffd_session", token)
-    resp = client.get("/giveaways")
-    assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
+def test_admin_can_access_giveaways(admin_client):
+    resp = admin_client.get("/giveaways")
+    assert resp.status_code == 200

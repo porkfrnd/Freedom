@@ -1,0 +1,70 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Members{% endblock %}
+{% block page_title %}Members{% endblock %}
+
+{% block panel %}
+<div class="max-w-3xl">
+  <div class="mb-8">
+    <h1 class="font-display text-xl font-bold">Members</h1>
+    <p class="text-muted text-sm mt-1">The people who make the floor come alive.</p>
+  </div>
+
+  {# ── Search + filter ─────────────────────────────────────────────── #}
+  <form method="GET" action="{{ url_for('settings.members') }}" class="card p-4 mb-6 flex gap-3 flex-wrap">
+    <input type="text" name="q" value="{{ search }}" placeholder="Search by name…"
+           class="input-field flex-1 min-w-[200px]">
+    <select name="style" class="input-field w-auto">
+      <option value="">All styles</option>
+      {% for style in dance_styles %}
+        <option value="{{ style }}" {% if style == selected_style %}selected{% endif %}>{{ style }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-primary text-sm">Search</button>
+  </form>
+
+  {# ── Results ─────────────────────────────────────────────────────── #}
+  {% if users %}
+    <div class="grid gap-3 sm:grid-cols-2">
+      {% for u in users %}
+        <a href="{{ url_for('settings.user_profile', user_id=u.id) }}"
+           class="card p-4 flex items-center gap-3 hover:border-violet/30 transition-colors block">
+          <span class="w-10 h-10 rounded-full border flex items-center justify-center font-display font-bold text-sm shrink-0 {{ u.avatar_bg }}">
+            {{ u.avatar_initial }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="font-semibold text-sm truncate">{{ u.name }}</p>
+              {% if u.is_admin %}
+                <span class="badge badge-warning text-[9px]">Admin</span>
+              {% elif u.is_teacher %}
+                <span class="badge badge-live text-[9px]">Teacher</span>
+              {% endif %}
+            </div>
+            <p class="text-muted text-xs">@{{ u.username }}</p>
+            {% if u.dance_styles %}
+              <div class="flex flex-wrap gap-1 mt-1">
+                {% for s in u.dance_styles[:3] %}
+                  <span class="text-[10px] text-muted">{{ s }}</span>
+                {% endfor %}
+                {% if u.dance_styles | length > 3 %}
+                  <span class="text-[10px] text-muted">+{{ u.dance_styles | length - 3 }}</span>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card p-8 text-center">
+      <p class="text-muted text-sm">
+        {% if search or selected_style %}
+          No members found matching your search.
+        {% else %}
+          No members yet.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

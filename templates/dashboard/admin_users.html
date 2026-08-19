@@ -1,0 +1,134 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Manage Users{% endblock %}
+{% block page_title %}Manage Users{% endblock %}
+
+{% block panel %}
+<div class="max-w-3xl">
+
+  <div class="mb-8">
+    <h1 class="font-display text-xl font-bold">User management</h1>
+    <p class="text-muted text-sm mt-1">Search by UID, promote teachers, manage roles.</p>
+  </div>
+
+  {# ── Search by UID ──────────────────────────────────────────────────── #}
+  <div class="card p-5 mb-8">
+    <h2 class="font-display font-bold text-sm mb-3">Find a user by UID</h2>
+    <form method="GET" action="{{ url_for('dashboard.admin_users') }}" class="flex gap-2">
+      <input type="text" name="uid" value="{{ search_uid }}" placeholder="e.g. #83,746,291,045 or 83746291045" class="input-field flex-1">
+      <button type="submit" class="btn-primary text-sm">Search</button>
+    </form>
+
+    {% if found_user %}
+      <div class="mt-4 p-4 rounded-card bg-violet/8 border border-violet/20">
+        <div class="flex items-center gap-4">
+          <span class="w-11 h-11 rounded-full bg-violet/20 border border-violet/30 flex items-center justify-center font-display font-bold text-violet">
+            {{ found_user.username[:1] | upper }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="font-display font-bold">{{ found_user.username }}</p>
+              {% if found_user.is_admin %}
+                <span class="badge badge-warning">Admin</span>
+              {% elif found_user.is_teacher %}
+                <span class="badge badge-live">Teacher</span>
+              {% else %}
+                <span class="badge badge-muted">Member</span>
+              {% endif %}
+            </div>
+            <p class="text-muted text-sm">{{ found_user.email }}</p>
+            <p class="text-muted text-xs font-mono mt-1">UID: {{ format_uid(found_user.id) }} · Joined {{ found_user.created_at.strftime('%b %d, %Y') }}</p>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            {% if not found_user.is_admin %}
+              {% if not found_user.is_teacher %}
+                <form method="POST" action="{{ url_for('dashboard.promote_teacher', user_id=found_user.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-primary text-xs">Make Teacher</button>
+                </form>
+              {% else %}
+                <form method="POST" action="{{ url_for('dashboard.demote_teacher', user_id=found_user.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-ghost text-xs">Remove Teacher</button>
+                </form>
+              {% endif %}
+              <form method="POST" action="{{ url_for('dashboard.toggle_admin', user_id=found_user.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-ghost text-xs">Make Admin</button>
+              </form>
+            {% else %}
+              <span class="text-xs text-muted">You can't change your own admin status.</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% elif search_uid %}
+      <div class="mt-4 p-4 rounded-card bg-danger/8 border border-danger/20">
+        <p class="text-sm">No user found with UID <span class="font-mono font-bold">{{ search_uid }}</span>.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ── All users ───────────────────────────────────────────────────────── #}
+  <div>
+    <h2 class="font-display font-bold mb-4">All users</h2>
+    <div class="space-y-2">
+      {% for u in users %}
+        <div class="card p-4 flex items-center gap-4">
+          <span class="w-9 h-9 rounded-full bg-violet/20 border border-violet/30 flex items-center justify-center font-display font-bold text-sm text-violet shrink-0">
+            {{ u.username[:1] | upper }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="font-semibold text-sm truncate">{{ u.username }}</p>
+              {% if u.is_admin %}
+                <span class="badge badge-warning">Admin</span>
+              {% elif u.is_teacher %}
+                <span class="badge badge-live">Teacher</span>
+              {% endif %}
+            </div>
+            <p class="text-muted text-xs">{{ u.email }}</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs text-muted font-mono cursor-pointer hover:text-paper transition-colors"
+                  onclick="navigator.clipboard.writeText('{{ u.id }}').then(function(){showCopiedToast('{{ format_uid(u.id) }}')})"
+                  title="Click to copy UID">
+              {{ format_uid(u.id) }}
+            </span>
+            {% if not u.is_admin %}
+              {% if not u.is_teacher %}
+                <form method="POST" action="{{ url_for('dashboard.promote_teacher', user_id=u.id) }}" class="inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="text-xs text-violet hover:underline">+ Teacher</button>
+                </form>
+              {% else %}
+                <form method="POST" action="{{ url_for('dashboard.demote_teacher', user_id=u.id) }}" class="inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="text-xs text-muted hover:underline">− Teacher</button>
+                </form>
+              {% endif %}
+              {% if u.id != my_user_id %}
+                <form method="POST" action="{{ url_for('dashboard.toggle_admin', user_id=u.id) }}" class="inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="text-xs text-muted hover:underline">+ Admin</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+function showCopiedToast(uid) {
+  var region = document.getElementById("toast-region");
+  if (!region) return;
+  var el = document.createElement("div");
+  el.className = "toast toast--success";
+  el.textContent = "UID " + uid + " copied.";
+  region.appendChild(el);
+  setTimeout(function() { el.remove(); }, 3000);
+}
+</script>
+{% endblock %}

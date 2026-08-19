@@ -1,10 +1,4 @@
-"""Shared pytest fixtures.
-
-Tests never touch real Discord/Groq/Lavalink: the Discord API helpers and
-OAuth endpoints are mocked, and the bot thread is disabled (START_BOT=False).
-The database is an in-memory SQLite with a StaticPool so every connection
-shares the same schema.
-"""
+"""Shared pytest fixtures — email/password auth, no Discord."""
 
 from __future__ import annotations
 
@@ -24,18 +18,12 @@ from services.auth import create_session_token  # noqa: E402
 
 class TestConfig(Config):
     TESTING = True
-    START_BOT = False
     SECRET_KEY = "test-secret-key-that-is-long-enough"
     SQLALCHEMY_DATABASE_URI = "sqlite://"
     SQLALCHEMY_ENGINE_OPTIONS = {
         "poolclass": StaticPool,
         "connect_args": {"check_same_thread": False},
     }
-    DISCORD_CLIENT_ID = "test-client-id"
-    DISCORD_CLIENT_SECRET = "test-client-secret"
-    DISCORD_GUILD_ID = "123456789012345678"
-    DISCORD_BOT_TOKEN = ""
-    # Keep rate-limit tests fast and deterministic.
     PLAYLIST_WRITE_LIMIT = 30
 
 
@@ -55,25 +43,37 @@ def client(app):
     return app.test_client()
 
 
-def make_token(app, discord_id, username="dancer", is_admin=False, guild_member=True, session_version=1):
+def make_token(app, user_id, username="dancer", email="dancer@test.com", is_admin=False, is_teacher=False):
     with app.app_context():
         return create_session_token(
-            discord_id=discord_id,
+            user_id=user_id,
             username=username,
-            avatar_hash=None,
+            email=email,
             is_admin=is_admin,
-            guild_member=guild_member,
-            session_version=session_version,
+            is_teacher=is_teacher,
         )
+
+
+def _create_user(app, user_id, username, email=None, is_admin=False, is_teacher=False):
+    with app.app_context():
+        existing = db.session.get(User, user_id)
+        if existing is None:
+            from werkzeug.security import generate_password_hash
+            db.session.add(User(
+                id=user_id,
+                username=username,
+                email=email or f"{username}@test.com",
+                password_hash=generate_password_hash("password123"),
+                is_admin=is_admin,
+                is_teacher=is_teacher,
+            ))
+            db.session.commit()
 
 
 @pytest.fixture()
 def member_token(app):
-    """A JWT for a guild member (non-admin)."""
-    with app.app_context():
-        db.session.add(User(discord_id=111, username="alice", is_admin=False))
-        db.session.commit()
-    return make_token(app, 111, "alice", is_admin=False, guild_member=True)
+    _create_user(app, 111, "alice")
+    return make_token(app, 111, "alice")
 
 
 @pytest.fixture()
@@ -85,11 +85,8 @@ def member_client(app, member_token):
 
 @pytest.fixture()
 def admin_token(app):
-    """A JWT whose COOKIE claims admin (the live check is mocked per test)."""
-    with app.app_context():
-        db.session.add(User(discord_id=222, username="bob", is_admin=True))
-        db.session.commit()
-    return make_token(app, 222, "bob", is_admin=True, guild_member=True)
+    _create_user(app, 222, "bob", is_admin=True)
+    return make_token(app, 222, "bob", is_admin=True)
 
 
 @pytest.fixture()
@@ -99,14 +96,19 @@ def admin_client(app, admin_token):
     return client
 
 
+@pytest.fixture()
+def teacher_token(app):
+    _create_user(app, 333, "carol", is_teacher=True)
+    return make_token(app, 333, "carol", is_teacher=True)
+
+
+@pytest.fixture()
+def teacher_client(app, teacher_token):
+    client = app.test_client()
+    client.set_cookie("ffd_session", teacher_token)
+    return client
+
+
 def csrf_of(client):
     """Read the CSRF token from the client's cookie jar."""
     return client.get_cookie("ffd_csrf").value
-
-
-def mock_live_admin(monkeypatch, is_member=True, is_admin=True):
-    """Point the admin guard's live Discord check at a canned answer."""
-    monkeypatch.setattr(
-        "utils.decorators.discord_api.verify_membership_and_admin",
-        lambda guild_id, user_id, config: (is_member, is_admin),
-    )

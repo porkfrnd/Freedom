@@ -1,0 +1,77 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Leaderboard{% endblock %}
+{% block page_title %}Leaderboard{% endblock %}
+
+{% block panel %}
+<div class="max-w-3xl">
+  <div class="mb-8">
+    <h1 class="font-display text-xl font-bold">Leaderboard</h1>
+    <p class="text-muted text-sm mt-1">Who's showing up the most.</p>
+  </div>
+
+  <div class="grid gap-6 md:grid-cols-3">
+    {# ── Challenges created ────────────────────────────────────────── #}
+    <div class="card p-5">
+      <h2 class="font-display font-bold text-sm mb-3 flex items-center gap-2">
+        <span class="text-lg">🏆</span> Challenges
+      </h2>
+      {% if challenge_leaders %}
+        <div class="space-y-2">
+          {% for user, count in challenge_leaders %}
+            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-violet transition-colors">
+              <span class="text-muted font-mono text-xs w-4">{{ loop.index }}.</span>
+              <span class="w-6 h-6 rounded-full border flex items-center justify-center font-display text-[10px] shrink-0 {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
+              <span class="truncate flex-1">{{ user.name }}</span>
+              <span class="font-mono text-muted text-xs">{{ count }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted text-xs">No data yet.</p>
+      {% endif %}
+    </div>
+
+    {# ── Playlists created ─────────────────────────────────────────── #}
+    <div class="card p-5">
+      <h2 class="font-display font-bold text-sm mb-3 flex items-center gap-2">
+        <span class="text-lg">🎵</span> Playlists
+      </h2>
+      {% if playlist_leaders %}
+        <div class="space-y-2">
+          {% for user, count in playlist_leaders %}
+            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-violet transition-colors">
+              <span class="text-muted font-mono text-xs w-4">{{ loop.index }}.</span>
+              <span class="w-6 h-6 rounded-full border flex items-center justify-center font-display text-[10px] shrink-0 {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
+              <span class="truncate flex-1">{{ user.name }}</span>
+              <span class="font-mono text-muted text-xs">{{ count }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted text-xs">No data yet.</p>
+      {% endif %}
+    </div>
+
+    {# ── Giveaways created ─────────────────────────────────────────── #}
+    <div class="card p-5">
+      <h2 class="font-display font-bold text-sm mb-3 flex items-center gap-2">
+        <span class="text-lg">🎁</span> Giveaways
+      </h2>
+      {% if giveaway_leaders %}
+        <div class="space-y-2">
+          {% for user, count in giveaway_leaders %}
+            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-violet transition-colors">
+              <span class="text-muted font-mono text-xs w-4">{{ loop.index }}.</span>
+              <span class="w-6 h-6 rounded-full border flex items-center justify-center font-display text-[10px] shrink-0 {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
+              <span class="truncate flex-1">{{ user.name }}</span>
+              <span class="font-mono text-muted text-xs">{{ count }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted text-xs">No data yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

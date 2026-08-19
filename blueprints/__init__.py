@@ -1,1 +1,1 @@
-"""Web blueprints: main (landing), auth (OAuth), dashboard, api."""
+"""Web blueprints: main, auth, dashboard, settings, api."""

@@ -3,104 +3,138 @@
 {% block page_title %}Giveaways{% endblock %}
 
 {% block panel %}
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-10">
-  {# ── Creator form ────────────────────────────────────────────────────── #}
-  <section class="glass-panel p-6 h-fit" aria-label="Create a giveaway">
-    <h2 class="font-display font-bold text-lg mb-5">Run a giveaway</h2>
-    <form method="post" action="{{ url_for('dashboard.create_giveaway') }}" class="flex flex-col gap-5">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="field">
-        <label for="prize">Prize</label>
-        <input id="prize" name="prize" type="text" required maxlength="120" placeholder="e.g. Front-row spot at the showcase">
-      </div>
-      <div class="field">
-        <label for="channel_id">Channel</label>
-        {% if channels %}
-        <select id="channel_id" name="channel_id" required>
-          <option value="" disabled selected>Pick where the embed lands…</option>
-          {% for channel in channels %}
-          <option value="{{ channel['id'] }}">#{{ channel['name'] }}</option>
-          {% endfor %}
-        </select>
-        {% else %}
-        <input id="channel_id" name="channel_id" type="text" required placeholder="Channel ID (bot token not configured)">
-        <p class="hint">The bot can't see your channels right now — paste the text channel ID.</p>
-        {% endif %}
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div class="field">
-          <label for="end_time">Ends at</label>
-          <input id="end_time" name="end_time" type="datetime-local" required value="{{ default_end.strftime('%Y-%m-%dT%H:%M') }}">
-        </div>
-        <div class="field">
-          <label for="num_winners">Winners</label>
-          <input id="num_winners" name="num_winners" type="number" min="1" max="20" value="1" required>
-        </div>
-      </div>
-      <button type="submit" class="btn btn-accent">Post giveaway</button>
-    </form>
-  </section>
-
-  {# ── Live embed preview (§5.11: mono countdown, exactly as Discord renders) #}
-  <section class="glass-panel p-6 h-fit" aria-label="Embed preview">
-    <h2 class="font-display font-bold text-lg mb-5">Preview</h2>
-    <div class="embed-preview">
-      <p id="giveaway-preview-title" class="embed-title">🎉 Giveaway: …</p>
-      <div class="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-        <p class="text-dim">Ends <span class="mono" data-countdown="{{ default_end.isoformat() }}">—</span></p>
-        <p class="text-dim">Winners <span class="mono">1</span></p>
-        <p class="text-dim">Entrants <span class="mono">0</span></p>
-      </div>
-      <p class="embed-foot">🎉 Enter Giveaway — <span class="badge badge-live">live</span></p>
+<div class="max-w-3xl">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="font-display text-xl font-bold">Giveaways</h1>
+      <p class="text-muted text-sm mt-1">One tap to enter. Winners drawn fairly.</p>
     </div>
-    <p class="text-xs text-dim mt-4">This is exactly what members see in Discord. The countdown ticks in the server's timezone.</p>
-  </section>
+    {% if can_post %}
+      <button type="button" data-modal-open="new-giveaway" class="btn-primary text-sm">New giveaway</button>
+    {% endif %}
+  </div>
+
+  {% if giveaways %}
+    <div class="space-y-4">
+      {% for g in giveaways %}
+        <div class="card p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="flex items-center gap-3 mb-1.5">
+                {% if g.status == 'ACTIVE' and not g.has_ended %}
+                  <span class="badge badge-live">Live</span>
+                {% elif g.status == 'ENDED' %}
+                  <span class="badge badge-muted">Ended</span>
+                {% else %}
+                  <span class="badge badge-muted">{{ g.status }}</span>
+                {% endif %}
+                {% if g.deadline and g.status == 'ACTIVE' %}
+                  <span class="text-xs text-muted">
+                    {% if g.has_ended %}Closed{% else %}Ends {{ g.deadline.strftime('%b %d, %H:%M') }}{% endif %}
+                  </span>
+                {% endif %}
+              </div>
+              <h2 class="font-display font-bold text-lg">{{ g.prize }}</h2>
+              {% if g.description %}
+                <p class="text-muted text-sm leading-relaxed mt-1.5">{{ g.description }}</p>
+              {% endif %}
+
+              <div class="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted">
+                <span>{{ g.entrants | length }} entrant{{ 's' if g.entrants | length != 1 }}</span>
+                {% if g.has_entered(my_user_id) %}
+                  <span class="badge badge-success">You're in</span>
+                {% endif %}
+              </div>
+
+              {% if g.winners %}
+                <div class="mt-4 pt-4 border-t border-white/5">
+                  <p class="text-xs text-muted mb-2">Winners:</p>
+                  <div class="flex flex-wrap gap-2">
+                    {% for winner_id in g.winners %}
+                      <span class="badge badge-success">{{ winner_names.get(winner_id, 'Member #' ~ winner_id) }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="shrink-0 flex flex-col gap-2">
+              {% if g.status == 'ACTIVE' and not g.has_ended and not g.has_entered(my_user_id) %}
+                <form method="POST" action="{{ url_for('dashboard.enter_giveaway', giveaway_id=g.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-primary text-sm">Enter</button>
+                </form>
+              {% endif %}
+              {% if can_post and g.status == 'ACTIVE' and g.has_ended %}
+                <form method="POST" action="{{ url_for('dashboard.draw_giveaway', giveaway_id=g.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-primary text-sm">Draw winners</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card p-12 text-center">
+      <p class="text-muted text-lg mb-2">No giveaways yet</p>
+      <p class="text-muted/70 text-sm">{% if can_post %}Post the first one to spread some joy.{% else %}The first giveaway hasn't been posted yet. Check back soon.{% endif %}</p>
+    </div>
+  {% endif %}
 </div>
 
-{# ── Management list ────────────────────────────────────────────────────── #}
-<section aria-label="Giveaway history">
-  <h2 class="font-display font-bold text-lg mb-4">On the board</h2>
-  {% if giveaways %}
-  <div class="flex flex-col gap-3">
-    {% for gw in giveaways %}
-    <div class="glass-panel px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div class="min-w-0 flex-1">
-        <p class="font-semibold truncate">🎉 {{ gw.prize }}</p>
-        <p class="text-xs text-dim mt-1">
-          #{{ gw.channel_id }} · <span class="mono">entrants {{ gw.entrants | length }}</span> ·
-          {% if gw.status == 'ACTIVE' %}ends <span class="mono" data-countdown="{{ gw.end_time.isoformat() }}">—</span>
-          {% else %}ended {{ gw.end_time | timeago }}{% endif %}
-        </p>
+{# ── New giveaway modal (admin) ────────────────────────────────────────── #}
+{% if can_post %}
+<div id="new-giveaway" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New giveaway">
+  <div class="absolute inset-0 bg-black/60" data-modal-close="new-giveaway"></div>
+  <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-lg p-6 shadow-2xl">
+    <h2 class="font-display font-bold text-lg mb-4">Post a giveaway</h2>
+    <form method="POST" action="{{ url_for('dashboard.create_giveaway') }}" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="prize" class="block text-sm font-medium mb-1.5">Prize</label>
+        <input type="text" id="prize" name="prize" required maxlength="120" placeholder="e.g. Free entry to the next showcase" class="input-field w-full">
       </div>
-      {% if gw.status == 'ACTIVE' %}
-        <span class="badge badge-live">active</span>
-        {% if not gw.message_id %}<span class="badge badge-warning">not posted yet</span>{% endif %}
-      {% elif gw.status == 'ENDED' %}
-        <span class="badge badge-success">ended</span>
-      {% else %}
-        <span class="badge badge-muted">cancelled</span>
-      {% endif %}
-      <div class="flex items-center gap-2">
-        {% if gw.status == 'ACTIVE' and not gw.message_id %}
-        <form method="post" action="{{ url_for('dashboard.retry_publish_giveaway', giveaway_id=gw.id) }}" data-no-loading>
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-ghost text-xs">Post it</button>
-        </form>
-        {% endif %}
-        {% if gw.status == 'ENDED' %}
-        <form method="post" action="{{ url_for('dashboard.reroll_giveaway', giveaway_id=gw.id) }}" data-no-loading>
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-ghost text-xs">Re-roll</button>
-        </form>
-        {% endif %}
+      <div>
+        <label for="description" class="block text-sm font-medium mb-1.5">Details <span class="text-muted font-normal">(optional)</span></label>
+        <textarea id="description" name="description" rows="3" placeholder="How to enter, what it's for…" class="input-field w-full resize-y"></textarea>
       </div>
-    </div>
-    {% endfor %}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="deadline" class="block text-sm font-medium mb-1.5">End date <span class="text-muted font-normal">(optional)</span></label>
+          <input type="datetime-local" id="deadline" name="deadline" class="input-field w-full">
+        </div>
+        <div>
+          <label for="num_winners" class="block text-sm font-medium mb-1.5">Winners</label>
+          <input type="number" id="num_winners" name="num_winners" min="1" max="20" value="1" class="input-field w-full">
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" data-modal-close="new-giveaway" class="btn-ghost text-sm">Cancel</button>
+        <button type="submit" class="btn-primary text-sm">Post giveaway</button>
+      </div>
+    </form>
   </div>
-  {% else %}
-  <div class="glass-panel p-10 text-center text-dim text-sm">
-    No giveaways yet. The floor is quiet — run one.
-  </div>
-  {% endif %}
-</section>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  document.querySelectorAll("[data-modal-open]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var modal = document.getElementById(btn.dataset.modalOpen);
+      if (modal) modal.classList.remove("hidden");
+    });
+  });
+  document.querySelectorAll("[data-modal-close]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var modal = document.getElementById(el.dataset.modalClose);
+      if (modal) modal.classList.add("hidden");
+    });
+  });
+})();
+</script>
 {% endblock %}

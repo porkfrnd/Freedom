@@ -1,39 +1,28 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   Freedom for Dance — design tokens (§5)
-   Backstage, not front-of-house: dim warm-dark space, saturated stage-light
-   accents, frosted-glass panels. Every color/type/elevation decision in the
-   templates pulls from here. No raw Tailwind gray/slate anywhere.
+   Freedom for Dance — design tokens
+   Deep, moody palette with stage-light accents. The dancer silhouette
+   from the logo is the visual anchor — we don't need gradients on
+   every surface to feel alive.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* ── Color tokens (§5.2) ─────────────────────────────────────────────── */
-  --void-ink: #0A0912;          /* base page background (deepest layer) */
-  --backstage: #14121F;         /* panel/card background before glass blur */
-  --curtain-violet: #7B2FF7;    /* primary accent */
-  --spotlight-magenta: #FF2E9A; /* the single most important CTA per screen */
-  --marquee-cyan: #34E4EA;      /* focus rings, live badges, data highlights */
-  --paper: #F3F1F8;             /* primary text on dark backgrounds */
-  --paper-dim: #A6A0B8;         /* secondary/muted text */
-  --success: #35D488;
-  --warning: #FFB020;
-  --danger: #FF4D6D;            /* deliberately distinct from magenta */
+  /* ── Color ─────────────────────────────────────────────────────────────── */
+  --ink: #0B0A14;
+  --surface: rgba(21, 19, 33, 0.65);
+  --violet: #7B2FF7;
+  --magenta: #FF2E9A;
+  --cyan: #34E4EA;
+  --paper: #F0EDF6;
+  --muted: #8B85A0;
+  --success: #10B981;
+  --danger: #F43F5E;
+  --_bg: #0B0A14;
 
-  /* ── Typography (§5.3) ───────────────────────────────────────────────── */
-  --font-display: "Cabinet Grotesk", "Clash Display", ui-sans-serif, sans-serif;
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* type scale (rem → line-height pairs) */
-  --text-xs: 0.75rem;   --leading-xs: 1.4;
-  --text-sm: 0.875rem;  --leading-sm: 1.5;
-  --text-base: 1rem;    --leading-base: 1.6;
-  --text-lg: 1.125rem;  --leading-lg: 1.5;
-  --text-xl: 1.5rem;    --leading-xl: 1.3;
-  --text-2xl: 2rem;     --leading-2xl: 1.2;
-  --text-3xl: 3rem;     --leading-3xl: 1.1;
-  --text-4xl: 4rem;     --leading-4xl: 1.05;
-
-  /* ── Spacing (strict 8px base, §5.4) ─────────────────────────────────── */
+  /* ── Spacing (8px grid) ───────────────────────────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -42,127 +31,25 @@
   --space-8: 32px;
   --space-12: 48px;
   --space-16: 64px;
-  --space-24: 96px;
 
-  /* ── Radius scale, used by component type (§5.4) ─────────────────────── */
-  --radius-input: 8px;
-  --radius-card: 16px;
-  --radius-hero: 24px;
-  --radius-pill: 999px;
-
-  /* ── Motion (§5.6) ───────────────────────────────────────────────────── */
-  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-micro: 150ms;
-  --dur-std: 250ms;
-  --dur-page: 400ms;
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-normal: 250ms;
 }
 
-/* ── Glassmorphism recipe (§5.5) — define once, reuse everywhere ────────── */
-.glass-panel {
-  background: rgba(20, 18, 31, 0.55); /* --backstage at 55% */
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-card);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),        /* ambient depth */
-    0 0 40px rgba(123, 47, 247, 0.10);     /* faint violet stage-light glow */
-  transition:
-    box-shadow var(--dur-std) var(--ease-expo),
-    border-color var(--dur-std) var(--ease-expo),
-    transform var(--dur-std) var(--ease-expo);
-}
-
-/* Elevation = glow intensity, not shadow size (§5.5) */
-.glass-panel:hover,
-.glass-panel:focus-within {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.40),
-    0 0 56px rgba(123, 47, 247, 0.18);     /* catching more light */
-}
-
-/* Modals get a stronger blur to separate from the page behind (§5.5) */
-.glass-modal {
-  background: rgba(20, 18, 31, 0.72);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-hero);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 0 64px rgba(123, 47, 247, 0.14);
-}
-
-/* ── Equalizer pulse (§5.1) — THE signature motif ──────────────────────────
-   Used in exactly three places: under the landing hero, as the app-wide
-   loading indicator, and as the "now playing" badge. Nowhere else. */
-.eq {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 20px;
-}
-.eq span {
-  width: 3px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(180deg, var(--spotlight-magenta), var(--curtain-violet));
-  animation: eq-pulse 1s linear infinite;
-  transform-origin: bottom;
-}
-.eq span:nth-child(2) { animation-delay: 0.15s; }
-.eq span:nth-child(3) { animation-delay: 0.3s; }
-.eq span:nth-child(4) { animation-delay: 0.45s; }
-.eq span:nth-child(5) { animation-delay: 0.6s; }
-
-@keyframes eq-pulse {
-  0%, 100% { height: 30%; }
-  50%      { height: 100%; }
-}
-
-/* Loading overlay — the equalizer replaces every generic spinner (§5.1) */
-.loading-eq {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  display: grid;
-  place-items: center;
-  background: rgba(10, 9, 18, 0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dur-micro) var(--ease-expo);
-}
-body.is-loading .loading-eq {
-  opacity: 1;
-  pointer-events: auto;
-}
-.loading-eq .eq { height: 32px; gap: 6px; }
-.loading-eq .eq span { width: 5px; }
-
-/* "Now playing" badge size */
-.eq--tiny { height: 14px; gap: 2px; }
-.eq--tiny span { width: 2px; }
-
-/* ── Accessibility: prefers-reduced-motion (§5.6, hard requirement) ──────── */
+/* ── Reduced motion ────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .eq span {
-    animation: none;
-    height: 45%;
-  }
-  .glass-panel,
-  .loading-eq,
-  .toast,
-  .page-enter,
-  * {
+  *, *::before, *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
 }
 
-/* ── Focus rings (§5.8) — never outline:none without a replacement ──────── */
+/* ── Focus rings ───────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--marquee-cyan);
+  outline: 2px solid var(--cyan);
   outline-offset: 2px;
   border-radius: 4px;
 }

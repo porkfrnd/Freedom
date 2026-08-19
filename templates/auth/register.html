@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Join — Freedom for Dance{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex flex-col items-center justify-center px-6 py-12">
+  <a href="{{ url_for('main.index') }}" class="mb-8" aria-label="Back to home">
+    {% set logo_class = 'h-12 w-auto' %}{% include "partials/logo.html" %}
+  </a>
+
+  <div class="w-full max-w-md">
+    <h1 class="font-display text-2xl font-bold text-center mb-2">Create your account</h1>
+    <p class="text-muted text-sm text-center mb-8">Pick a name, set a password, and you're in.</p>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-5">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div>
+        <label for="username" class="block text-sm font-medium mb-1.5">Display name</label>
+        <input type="text" id="username" name="username" required minlength="2" maxlength="64"
+               value="{{ username | default('') }}"
+               placeholder="What should we call you?"
+               class="input-field w-full">
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-medium mb-1.5">Email address</label>
+        <input type="email" id="email" name="email" required
+               value="{{ email | default('') }}"
+               placeholder="you@example.com"
+               class="input-field w-full">
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium mb-1.5">Password</label>
+        <input type="password" id="password" name="password" required minlength="8"
+               placeholder="At least 8 characters"
+               class="input-field w-full">
+      </div>
+
+      <div>
+        <label for="confirm_password" class="block text-sm font-medium mb-1.5">Confirm password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required
+               placeholder="Type it again"
+               class="input-field w-full">
+      </div>
+
+      <button type="submit" class="btn-primary w-full py-3 text-base">Create account</button>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-muted">
+      Already have an account? <a href="{{ url_for('auth.login') }}" class="text-violet hover:text-magenta transition-colors font-medium">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

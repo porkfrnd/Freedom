@@ -1,0 +1,78 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}{{ challenge.title }}{% endblock %}
+{% block page_title %}Challenge{% endblock %}
+
+{% block panel %}
+<div class="max-w-2xl">
+  <a href="{{ url_for('dashboard.challenges') }}" class="btn-ghost text-sm mb-6 inline-flex">← Back to challenges</a>
+
+  <div class="card p-6 mb-6">
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <h1 class="font-display text-xl font-bold">{{ challenge.title }}</h1>
+      {% if challenge.has_ended %}
+        <span class="badge badge-muted shrink-0">Ended</span>
+      {% else %}
+        <span class="badge badge-live shrink-0">Active</span>
+      {% endif %}
+    </div>
+    <p class="text-muted text-sm leading-relaxed">{{ challenge.description }}</p>
+    {% if challenge.deadline %}
+      <p class="text-xs text-muted mt-3">
+        {% if challenge.has_ended %}
+          Ended {{ challenge.deadline.strftime('%b %d, %Y') }}
+        {% else %}
+          Deadline: {{ challenge.deadline.strftime('%b %d, %Y at %H:%M') }}
+        {% endif %}
+      </p>
+    {% endif %}
+    <p class="text-xs text-muted mt-1">Posted by {{ challenge.creator.name if challenge.creator else 'Unknown' }}</p>
+  </div>
+
+  {# ── Submit form ──────────────────────────────────────────────────── #}
+  {% if not challenge.has_ended and challenge.status == 'ACTIVE' %}
+    {% if not user_submission %}
+      <div class="card p-6 mb-6">
+        <h2 class="font-display font-bold text-sm mb-3">Submit your attempt</h2>
+        <form method="POST" action="{{ url_for('settings.submit_to_challenge', challenge_id=challenge.id) }}" class="space-y-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="url" name="url" required placeholder="https://youtube.com/… or https://instagram.com/…"
+                 class="input-field w-full">
+          <input type="text" name="note" maxlength="150" placeholder="Optional note (150 chars max)"
+                 class="input-field w-full">
+          <button type="submit" class="btn-primary text-sm">Submit</button>
+        </form>
+      </div>
+    {% else %}
+      <div class="card p-4 mb-6 bg-violet/5 border-violet/20">
+        <p class="text-sm">✅ You already submitted — <a href="{{ user_submission.url }}" target="_blank" rel="noopener" class="text-violet hover:underline">view your submission</a></p>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {# ── Submissions gallery ──────────────────────────────────────────── #}
+  <div>
+    <h2 class="font-display font-bold mb-3">Submissions ({{ submissions | length }})</h2>
+    {% if submissions %}
+      <div class="space-y-3">
+        {% for sub in submissions %}
+          <div class="card p-4 flex items-center gap-4">
+            <span class="w-9 h-9 rounded-full border flex items-center justify-center font-display font-bold text-sm shrink-0
+                         {{ users[sub.user_id].avatar_bg if sub.user_id in users else 'bg-violet/20 border-violet/30 text-violet' }}">
+              {{ users[sub.user_id].avatar_initial if sub.user_id in users else '?' }}
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold">{{ users[sub.user_id].name if sub.user_id in users else 'Unknown' }}</p>
+              {% if sub.note %}<p class="text-xs text-muted mt-0.5">{{ sub.note }}</p>{% endif %}
+            </div>
+            <a href="{{ sub.url }}" target="_blank" rel="noopener" class="btn-ghost text-xs shrink-0">View →</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card p-8 text-center">
+        <p class="text-muted text-sm">No submissions yet. Be the first.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

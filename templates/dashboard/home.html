@@ -1,0 +1,185 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Home{% endblock %}
+{% block page_title %}Home{% endblock %}
+
+{% block panel %}
+<div class="max-w-3xl">
+  <div class="mb-8">
+    <h1 class="font-display text-xl font-bold">What's happening</h1>
+    <p class="text-muted text-sm mt-1">Challenges, giveaways, and the latest from the community.</p>
+  </div>
+
+  {# ── Community stats (free — computed from existing data) ──────────── #}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+    <div class="card p-3 text-center">
+      <p class="font-display font-bold text-lg">{{ stats.members }}</p>
+      <p class="text-muted text-[11px]">Members</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p class="font-display font-bold text-lg">{{ stats.active_challenges }}</p>
+      <p class="text-muted text-[11px]">Active challenges</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p class="font-display font-bold text-lg">{{ stats.open_giveaways }}</p>
+      <p class="text-muted text-[11px]">Open giveaways</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p class="font-display font-bold text-lg">{{ stats.playlists }}</p>
+      <p class="text-muted text-[11px]">Playlists</p>
+    </div>
+  </div>
+
+  {# ── Activity feed (computed — 0 new storage) ────────────────────── #}
+  {% if activity %}
+    <section class="mb-10">
+      <h2 class="font-display font-bold mb-3">Recent activity</h2>
+      <div class="card divide-y divide-white/5">
+        {% for item in activity %}
+          <div class="px-4 py-3 flex items-center gap-3 text-sm">
+            <span class="w-7 h-7 rounded-full border flex items-center justify-center font-display text-[10px] shrink-0 {{ item.avatar_bg }}">
+              {{ item.avatar_initial }}
+            </span>
+            <div class="flex-1 min-w-0">
+              <span class="font-semibold">{{ item.user_name }}</span>
+              <span class="text-muted">{{ item.action }}</span>
+              {% if item.target %}
+                <a href="{{ item.url }}" class="text-violet hover:underline">{{ item.target }}</a>
+              {% endif %}
+            </div>
+            <span class="text-xs text-muted shrink-0">{{ item.time_ago }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# ── Giveaways up top ──────────────────────────────────────────────── #}
+  <section class="mb-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-display font-bold">Open giveaways</h2>
+      <a href="{{ url_for('dashboard.giveaways') }}" class="text-sm text-violet hover:text-magenta transition-colors">See all →</a>
+    </div>
+    {% if giveaways %}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {% for g in giveaways %}
+          <div class="card p-5">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <h3 class="font-display font-bold text-base">{{ g.prize }}</h3>
+              {% if g.has_entered(my_user_id) %}
+                <span class="badge badge-success">Entered</span>
+              {% else %}
+                <span class="badge badge-live">Open</span>
+              {% endif %}
+            </div>
+            {% if g.description %}
+              <p class="text-muted text-sm leading-relaxed mb-3">{{ g.description }}</p>
+            {% endif %}
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+              <span class="text-xs text-muted">
+                {% if g.deadline %}
+                  {% if g.has_ended %}
+                    <span class="text-danger">Closed</span>
+                  {% else %}
+                    Ends {{ g.deadline.strftime('%b %d, %H:%M') }}
+                  {% endif %}
+                {% else %}
+                  {{ g.entrants | length }} entrant{{ 's' if g.entrants | length != 1 }}
+                {% endif %}
+              </span>
+              {% if g.status == 'ACTIVE' and not g.has_ended and not g.has_entered(my_user_id) %}
+                <form method="POST" action="{{ url_for('dashboard.enter_giveaway', giveaway_id=g.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-primary text-xs px-4 py-2">Enter</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card p-8 text-center">
+        <p class="text-muted text-sm">No open giveaways right now. Check back soon.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {# ── Active challenges ───────────────────────────────────────────────── #}
+  <section class="mb-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-display font-bold">Active challenges</h2>
+      <a href="{{ url_for('dashboard.challenges') }}" class="text-sm text-violet hover:text-magenta transition-colors">See all →</a>
+    </div>
+    {% if challenges %}
+      <div class="space-y-3">
+        {% for c in challenges %}
+          <a href="{{ url_for('settings.challenge_detail', challenge_id=c.id) }}"
+             class="card p-5 flex items-start justify-between gap-3 hover:border-violet/30 transition-colors block">
+            <div>
+              <h3 class="font-display font-bold">{{ c.title }}</h3>
+              <p class="text-muted text-sm leading-relaxed mt-1">{{ c.description }}</p>
+            </div>
+            {% if c.deadline and not c.has_ended %}
+              <span class="badge badge-live shrink-0">Until {{ c.deadline.strftime('%b %d') }}</span>
+            {% elif c.has_ended %}
+              <span class="badge badge-muted shrink-0">Ended</span>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card p-8 text-center">
+        <p class="text-muted text-sm">No active challenges. The floor is quiet for now.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {# ── Upcoming events ──────────────────────────────────────────────── #}
+  {% if upcoming_events %}
+    <section class="mb-10">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-display font-bold">Upcoming events</h2>
+        <a href="{{ url_for('settings.events') }}" class="text-sm text-violet hover:text-magenta transition-colors">See all →</a>
+      </div>
+      <div class="space-y-3">
+        {% for ev in upcoming_events[:3] %}
+          <div class="card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-display font-bold text-sm">{{ ev.title }}</p>
+                <p class="text-xs text-muted mt-0.5">📅 {{ ev.starts_at.strftime('%a, %b %d · %H:%M') }}{% if ev.location %} · 📍 {{ ev.location }}{% endif %}</p>
+              </div>
+              <span class="text-xs text-muted">{{ ev.going_count }} going</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# ── Latest announcements ────────────────────────────────────────────── #}
+  <section>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-display font-bold">Latest news</h2>
+      <a href="{{ url_for('dashboard.announcements') }}" class="text-sm text-violet hover:text-magenta transition-colors">See all →</a>
+    </div>
+    {% if announcements %}
+      <div class="space-y-3">
+        {% for a in announcements %}
+          <div class="card p-5">
+            <div class="flex items-center gap-3 mb-1.5">
+              <span class="badge {% if a.category == 'CHALLENGE' %}badge-live{% elif a.category == 'CHANGE' %}badge-warning{% elif a.category == 'EVENT' %}badge-success{% else %}badge-muted{% endif %}">{{ a.category }}</span>
+              <span class="text-xs text-muted">{{ a.created_at.strftime('%b %d, %H:%M') }}</span>
+            </div>
+            <h3 class="font-display font-bold">{{ a.title }}</h3>
+            <p class="text-muted text-sm leading-relaxed mt-1">{{ a.content }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card p-8 text-center">
+        <p class="text-muted text-sm">Nothing announced yet.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

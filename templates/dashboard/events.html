@@ -1,0 +1,125 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Events{% endblock %}
+{% block page_title %}Events{% endblock %}
+
+{% block panel %}
+<div class="max-w-3xl">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="font-display text-xl font-bold">Events</h1>
+      <p class="text-muted text-sm mt-1">Sessions, practices, showcases — when and where.</p>
+    </div>
+    {% if is_admin or is_teacher %}
+      <button type="button" data-modal-open="new-event" class="btn-primary text-sm">+ New event</button>
+    {% endif %}
+  </div>
+
+  {# ── Upcoming ────────────────────────────────────────────────────── #}
+  <section class="mb-10">
+    <h2 class="font-display font-bold mb-4">Upcoming</h2>
+    {% if upcoming %}
+      <div class="space-y-3">
+        {% for ev in upcoming %}
+          <div class="card p-5">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <h3 class="font-display font-bold">{{ ev.title }}</h3>
+                <p class="text-xs text-muted mt-1">
+                  📅 {{ ev.starts_at.strftime('%a, %b %d · %H:%M') }}
+                  {% if ev.ends_at %} → {{ ev.ends_at.strftime('%H:%M') }}{% endif %}
+                </p>
+                {% if ev.location %}<p class="text-xs text-muted mt-0.5">📍 {{ ev.location }}</p>{% endif %}
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <form method="POST" action="{{ url_for('settings.rsvp_event', event_id=ev.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="status" value="going">
+                  <button type="submit" class="text-xs px-3 py-1 rounded-full border transition-all
+                    {% if ev.get_rsvp(current_user.id) == 'going' %}bg-green-500/15 border-green-500/30 text-green-500{% else %}border-white/10 text-muted hover:border-green-500/30{% endif %}">
+                    ✓ Going ({{ ev.going_count }})
+                  </button>
+                </form>
+                <form method="POST" action="{{ url_for('settings.rsvp_event', event_id=ev.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="status" value="maybe">
+                  <button type="submit" class="text-xs px-3 py-1 rounded-full border transition-all
+                    {% if ev.get_rsvp(current_user.id) == 'maybe' %}bg-amber-500/15 border-amber-500/30 text-amber-500{% else %}border-white/10 text-muted hover:border-amber-500/30{% endif %}">
+                    ? Maybe ({{ ev.maybe_count }})
+                  </button>
+                </form>
+              </div>
+            </div>
+            {% if ev.description %}<p class="text-sm text-muted leading-relaxed mt-2">{{ ev.description }}</p>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card p-8 text-center">
+        <p class="text-muted text-sm">No upcoming events. Check back soon.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {# ── Past ────────────────────────────────────────────────────────── #}
+  {% if past %}
+    <section>
+      <h2 class="font-display font-bold mb-4 text-muted">Past events</h2>
+      <div class="space-y-2">
+        {% for ev in past %}
+          <div class="card p-4 opacity-60">
+            <p class="text-sm font-semibold">{{ ev.title }}</p>
+            <p class="text-xs text-muted">{{ ev.starts_at.strftime('%b %d, %Y') }} · {{ ev.going_count }} attended</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+
+{# ── New event modal ────────────────────────────────────────────────── #}
+<div id="new-event" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
+  <div class="absolute inset-0 bg-black/60" data-modal-close="new-event"></div>
+  <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-md p-6 shadow-2xl">
+    <h2 class="font-display font-bold text-lg mb-4">New event</h2>
+    <form method="POST" action="{{ url_for('settings.create_event') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="text" name="title" required maxlength="60" placeholder="Event title" class="input-field w-full">
+      <textarea name="description" maxlength="300" rows="2" placeholder="What's happening?" class="input-field w-full"></textarea>
+      <input type="text" name="location" maxlength="60" placeholder="Location (e.g. Studio B)" class="input-field w-full">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-muted mb-1">Starts at</label>
+          <input type="datetime-local" name="starts_at" required class="input-field w-full">
+        </div>
+        <div>
+          <label class="block text-xs text-muted mb-1">Ends at (optional)</label>
+          <input type="datetime-local" name="ends_at" class="input-field w-full">
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" data-modal-close="new-event" class="btn-ghost text-sm">Cancel</button>
+        <button type="submit" class="btn-primary text-sm">Create event</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  document.querySelectorAll("[data-modal-open]").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var m = document.getElementById(btn.dataset.modalOpen);
+      if (m) m.classList.remove("hidden");
+    });
+  });
+  document.querySelectorAll("[data-modal-close]").forEach(function(el) {
+    el.addEventListener("click", function() {
+      var m = document.getElementById(el.dataset.modalClose);
+      if (m) m.classList.add("hidden");
+    });
+  });
+})();
+</script>
+{% endblock %}

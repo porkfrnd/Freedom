@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Sign in — Freedom for Dance{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex flex-col items-center justify-center px-6 py-12">
+  <a href="{{ url_for('main.index') }}" class="mb-8" aria-label="Back to home">
+    {% set logo_class = 'h-12 w-auto' %}{% include "partials/logo.html" %}
+  </a>
+
+  <div class="w-full max-w-md">
+    <h1 class="font-display text-2xl font-bold text-center mb-2">Welcome back</h1>
+    <p class="text-muted text-sm text-center mb-8">Sign in to your Freedom for Dance account.</p>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div>
+        <label for="email" class="block text-sm font-medium mb-1.5">Email address</label>
+        <input type="email" id="email" name="email" required
+               value="{{ email | default('') }}"
+               placeholder="you@example.com"
+               class="input-field w-full">
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium mb-1.5">Password</label>
+        <input type="password" id="password" name="password" required
+               placeholder="Your password"
+               class="input-field w-full">
+      </div>
+
+      <button type="submit" class="btn-primary w-full py-3 text-base">Sign in</button>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-muted">
+      Don't have an account? <a href="{{ url_for('auth.register') }}" class="text-violet hover:text-magenta transition-colors font-medium">Create one</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

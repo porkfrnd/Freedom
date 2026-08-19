@@ -1,14 +1,11 @@
-"""Playlist API (§7.4).
-
-REST-ish JSON endpoints under ``/api/playlists``:
+"""Playlist API — REST-ish JSON endpoints under ``/api/playlists``.
 
 * ``GET    /api/playlists``        — list public playlists (+ mine via ?filter=mine)
 * ``POST   /api/playlists``        — create (validated, rate-limited)
 * ``PUT    /api/playlists/<id>``   — update (creator or admin)
 * ``DELETE /api/playlists/<id>``   — delete (creator or admin)
 
-Every error uses the same shape: ``{"error": {"code": ..., "message": ...}}``.
-All writes are per-user rate-limited (sliding window).
+Every error uses the same shape: ``{"error": {\"code\": ..., \"message\": ...}}``.
 """
 
 from __future__ import annotations
@@ -19,7 +16,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from extensions import db
 from models import Playlist, User, generate_playlist_id, utcnow
-from utils.decorators import require_api_user
+from utils.decorators import require_login
 from utils.logging import get_logger
 from utils.ratelimit import RateLimiter
 
@@ -77,12 +74,12 @@ def _normalize_tracks(tracks) -> list[dict]:
 
 
 @bp.get("/api/playlists")
-@require_api_user
+@require_login
 def list_playlists():
     mine = request.args.get("filter") == "mine"
     query = Playlist.query
     if mine:
-        query = query.filter(Playlist.creator_discord_id == g.claims["discord_id"])
+        query = query.filter(Playlist.creator_id == g.user.id)
     else:
         query = query.filter(Playlist.is_public.is_(True))
     playlists = query.order_by(Playlist.updated_at.desc()).all()
@@ -92,7 +89,7 @@ def list_playlists():
                 {
                     "id": p.id,
                     "name": p.name,
-                    "creator_discord_id": p.creator_discord_id,
+                    "creator_id": p.creator_id,
                     "creator_name": p.creator.username if p.creator else None,
                     "track_count": p.track_count,
                     "is_public": p.is_public,
@@ -106,10 +103,10 @@ def list_playlists():
 
 
 @bp.post("/api/playlists")
-@require_api_user
+@require_login
 def create_playlist():
     limiter = current_app.extensions["ffd_playlist_limiter"]
-    if not limiter.allow(str(g.claims["discord_id"])):
+    if not limiter.allow(str(g.user.id)):
         return _error("rate_limited", "You're creating playlists a bit fast — slow down and try again.", 429)
 
     data = request.get_json(silent=True) or {}
@@ -137,30 +134,29 @@ def create_playlist():
 
     playlist = Playlist(
         id=playlist_id,
-        creator_discord_id=g.claims["discord_id"],
+        creator_id=g.user.id,
         name=name,
         tracks=_normalize_tracks(tracks),
         is_public=is_public,
     )
     db.session.add(playlist)
     db.session.commit()
-    log.info("playlist_created", playlist_id=playlist_id, by=g.claims["discord_id"])
+    log.info("playlist_created", playlist_id=playlist_id, by=g.user.id)
     return jsonify({"playlist": {"id": playlist.id, "name": playlist.name}}), 201
 
 
 @bp.put("/api/playlists/<playlist_id>")
-@require_api_user
+@require_login
 def update_playlist(playlist_id):
     playlist = db.session.get(Playlist, playlist_id)
     if playlist is None:
-        return _error("not_found", "That playlist ID doesn't exist. Double-check the code and try again.", 404)
-
-    if not _can_edit(playlist):
+        return _error("not_found", "That playlist ID doesn't exist.", 404)
+    if playlist.creator_id != g.user.id and not g.claims.get("is_admin"):
         return _error("forbidden", "Only the creator (or an admin) can edit this playlist.", 403)
 
     limiter = current_app.extensions["ffd_playlist_limiter"]
-    if not limiter.allow(str(g.claims["discord_id"])):
-        return _error("rate_limited", "You're making changes a bit fast — slow down and try again.", 429)
+    if not limiter.allow(str(g.user.id)):
+        return _error("rate_limited", "You're making changes a bit fast — slow down.", 429)
 
     data = request.get_json(silent=True) or {}
     if "name" in data:
@@ -179,40 +175,43 @@ def update_playlist(playlist_id):
         playlist.is_public = bool(data["is_public"])
     playlist.updated_at = utcnow()
     db.session.commit()
-    log.info("playlist_updated", playlist_id=playlist_id, by=g.claims["discord_id"])
+    log.info("playlist_updated", playlist_id=playlist_id, by=g.user.id)
     return jsonify({"playlist": {"id": playlist.id, "name": playlist.name}})
 
 
 @bp.delete("/api/playlists/<playlist_id>")
-@require_api_user
+@require_login
 def delete_playlist(playlist_id):
     playlist = db.session.get(Playlist, playlist_id)
     if playlist is None:
-        return _error("not_found", "That playlist ID doesn't exist. Double-check the code and try again.", 404)
-    if not _can_edit(playlist):
+        return _error("not_found", "That playlist ID doesn't exist.", 404)
+    if playlist.creator_id != g.user.id and not g.claims.get("is_admin"):
         return _error("forbidden", "Only the creator (or an admin) can delete this playlist.", 403)
 
     limiter = current_app.extensions["ffd_playlist_limiter"]
-    if not limiter.allow(str(g.claims["discord_id"])):
-        return _error("rate_limited", "You're making changes a bit fast — slow down and try again.", 429)
+    if not limiter.allow(str(g.user.id)):
+        return _error("rate_limited", "You're making changes a bit fast.", 429)
 
     db.session.delete(playlist)
     db.session.commit()
-    log.info("playlist_deleted", playlist_id=playlist_id, by=g.claims["discord_id"])
+    log.info("playlist_deleted", playlist_id=playlist_id, by=g.user.id)
     return jsonify({"ok": True})
 
 
-@bp.get("/api/bot/now-playing")
-@require_api_user
-def now_playing():
-    """Current playlist id per guild, for the equalizer 'now playing' badge."""
-    from blueprints.dashboard import _now_playing
+@bp.post("/api/playlists/<playlist_id>/save")
+@require_login
+def toggle_save(playlist_id):
+    """Toggle save/unsave a playlist. Returns current save count and state."""
+    playlist = db.session.get(Playlist, playlist_id)
+    if playlist is None:
+        return _error("not_found", "That playlist ID doesn't exist.", 404)
+    if not playlist.is_public and playlist.creator_id != g.user.id:
+        return _error("forbidden", "You can't save a private playlist.", 403)
 
-    return jsonify({"playlist_id": _now_playing()})
-
-
-def _can_edit(playlist: Playlist) -> bool:
-    if playlist.creator_discord_id == g.claims["discord_id"]:
-        return True
-    user = db.session.get(User, g.claims["discord_id"])
-    return bool(user and user.is_admin)
+    is_saved = playlist.toggle_save(g.user.id)
+    db.session.commit()
+    log.info("playlist_save_toggled", playlist_id=playlist_id, by=g.user.id, saved=is_saved)
+    return jsonify({
+        "saved": is_saved,
+        "save_count": playlist.save_count,
+    })

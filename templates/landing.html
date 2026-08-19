@@ -1,95 +1,203 @@
 {% extends "base.html" %}
-{% block title %}Freedom for Dance — a home base for the floor{% endblock %}
+{% block title %}Freedom for Dance — where the floor is yours{% endblock %}
 
 {% block body %}
+{# ── Header ─────────────────────────────────────────────────────────────── #}
 <header class="mx-auto max-w-shell px-6 lg:px-16 py-6 flex items-center justify-between">
   <a href="{{ url_for('main.index') }}" aria-label="Freedom for Dance home">
-    {% set logo_class = 'h-9 lg:h-10 w-auto' %}{% include "partials/logo.html" %}
+    {% set logo_class = 'h-10 w-auto' %}{% include "partials/logo.html" %}
   </a>
-  <div class="flex items-center gap-3">
-    {% if current_claims and current_claims.get('guild_member') %}
-      <a href="{{ url_for('dashboard.playlists') }}" class="btn btn-primary">Open dashboard</a>
+  <nav class="flex items-center gap-4">
+    {% if current_claims %}
+      <a href="{{ url_for('dashboard.home') }}" class="btn-primary">Dashboard</a>
     {% else %}
-      <a href="{{ url_for('auth.login') }}" class="btn btn-accent">Join the Discord</a>
+      <a href="{{ url_for('auth.login') }}" class="btn-ghost">Sign in</a>
+      <a href="{{ url_for('auth.register') }}" class="btn-primary">Join</a>
     {% endif %}
-  </div>
+  </nav>
 </header>
 
-<main id="main" class="page-enter">
-  <section class="mx-auto max-w-shell px-6 lg:px-16 pt-16 lg:pt-24 pb-12 text-center">
-    <p class="text-dim text-sm uppercase tracking-[0.2em] mb-6">A home base for the floor</p>
-    <h1 class="hero-title mx-auto max-w-4xl">
-      Dancing is a form of expression<br class="hidden md:block">
-      <span class="bg-gradient-to-r from-violet via-magenta to-cyan bg-clip-text text-transparent">and we must push it forward.</span>
-    </h1>
-    {# Equalizer — usage #1 of exactly 3: under the hero headline (§5.1) #}
-    <div class="flex justify-center mt-8">
-      {% include "partials/equalizer.html" %}
+<main id="main">
+  {# ── Hero ──────────────────────────────────────────────────────────────── #}
+  <section class="relative mx-auto max-w-shell px-6 lg:px-16 pt-20 lg:pt-32 pb-16 overflow-hidden">
+    <div class="absolute inset-0 -z-10 pointer-events-none">
+      <div class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-violet/8 blur-[120px]"></div>
+      <div class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-magenta/6 blur-[100px]"></div>
     </div>
-    <p class="text-dim mt-8 max-w-xl mx-auto text-lg leading-lg">
-      Your server's backstage pass — playlists to share, giveaways to enter,
-      announcements before the show. All in one dim, warm room.
-    </p>
-    <div class="mt-10 flex flex-wrap justify-center gap-4">
-      {% if current_claims and current_claims.get('guild_member') %}
-        <a href="{{ url_for('dashboard.playlists') }}" class="btn btn-accent">Step inside</a>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}" class="btn btn-accent">Join the Discord</a>
-      {% endif %}
-    </div>
-  </section>
 
-  {# Glass stat cards (§5.11) #}
-  <section class="mx-auto max-w-shell px-6 lg:px-16 pb-16" aria-label="Server stats">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="glass-panel p-8 text-center">
-        <p class="font-display text-4xl font-bold bg-gradient-to-r from-violet to-magenta bg-clip-text text-transparent">{{ member_count }}</p>
-        <p class="text-dim text-sm mt-2">members on the floor</p>
-      </div>
-      <div class="glass-panel p-8 text-center">
-        <p class="font-display text-4xl font-bold bg-gradient-to-r from-violet to-magenta bg-clip-text text-transparent">{{ playlist_count }}</p>
-        <p class="text-dim text-sm mt-2">public playlists</p>
-      </div>
-      <div class="glass-panel p-8 text-center">
-        <p class="font-display text-4xl font-bold bg-gradient-to-r from-violet to-magenta bg-clip-text text-transparent">{{ event_count }}</p>
-        <p class="text-dim text-sm mt-2">giveaways live right now</p>
+    <div class="max-w-3xl">
+      <p class="text-muted text-sm uppercase tracking-[0.25em] mb-6">A community, not a stage</p>
+      <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight">
+        The floor doesn't<br>
+        judge — <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet via-magenta to-cyan">neither do we.</span>
+      </h1>
+      <p class="mt-6 text-lg text-muted max-w-xl leading-relaxed">
+        Freedom for Dance is where dancers find each other. We run challenges, give things away, share the music we move to, and keep everyone in the loop when something changes. No rankings, no gatekeeping — just people who'd rather be dancing.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        {% if current_claims %}
+          <a href="{{ url_for('dashboard.home') }}" class="btn-primary text-base px-6 py-3">Open the dashboard</a>
+        {% else %}
+          <a href="{{ url_for('auth.register') }}" class="btn-primary text-base px-6 py-3">Create your account</a>
+          <a href="{{ url_for('auth.login') }}" class="btn-ghost text-base px-6 py-3">Already have one? Sign in</a>
+        {% endif %}
       </div>
     </div>
   </section>
 
-  {# Feature cards — "What you'll find inside" (§5.11) #}
-  <section class="mx-auto max-w-shell px-6 lg:px-16 pb-24" aria-label="What you'll find inside">
-    <h2 class="font-display text-2xl font-bold mb-8 text-center">What you'll find inside</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <article class="glass-panel p-8">
-        <div class="w-11 h-11 rounded-input bg-violet/20 border border-violet/40 grid place-items-center mb-5" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-violet"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+  {# ── Manifesto band — the quote that carries the page ─────────────────── #}
+  <section class="mx-auto max-w-shell px-6 lg:px-16 pb-16">
+    <div class="border-y border-white/8 py-10 md:py-14 text-center">
+      <p class="font-display text-2xl md:text-4xl font-bold leading-snug max-w-3xl mx-auto">
+        Warm up. Show up.<br>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet via-magenta to-cyan">Mess up. Come back.</span>
+      </p>
+      <p class="text-muted text-sm mt-4">That's the whole philosophy. Everything else is details.</p>
+    </div>
+  </section>
+
+  {# ── Stats ─────────────────────────────────────────────────────────────── #}
+  <section class="mx-auto max-w-shell px-6 lg:px-16 pb-16" aria-label="Community stats">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="card p-6 text-center">
+        <p class="font-display text-3xl font-bold text-violet">{{ member_count }}</p>
+        <p class="text-muted text-sm mt-1">dancers in the community</p>
+      </div>
+      <div class="card p-6 text-center">
+        <p class="font-display text-3xl font-bold text-magenta">{{ challenge_count }}</p>
+        <p class="text-muted text-sm mt-1">challenges to take on</p>
+      </div>
+      <div class="card p-6 text-center">
+        <p class="font-display text-3xl font-bold text-cyan">{{ giveaway_count }}</p>
+        <p class="text-muted text-sm mt-1">giveaways to enter</p>
+      </div>
+      <div class="card p-6 text-center">
+        <p class="font-display text-3xl font-bold text-violet">{{ playlist_count }}</p>
+        <p class="text-muted text-sm mt-1">playlists shared</p>
+      </div>
+    </div>
+  </section>
+
+  {# ── What you'll find inside ───────────────────────────────────────────── #}
+  <section class="mx-auto max-w-shell px-6 lg:px-16 pb-20">
+    <div class="max-w-2xl mb-12">
+      <p class="text-muted text-sm uppercase tracking-[0.2em] mb-3">What you'll find inside</p>
+      <h2 class="font-display text-2xl lg:text-3xl font-bold">Everything a dance community actually needs.</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="card p-8">
+        <div class="w-10 h-10 rounded-lg bg-violet/15 border border-violet/30 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-violet"><path d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
         </div>
-        <h3 class="font-display font-bold text-lg mb-2">Shared playlists</h3>
-        <p class="text-dim text-sm leading-sm">Build a setlist with the crew, then drop it in the voice channel with <span class="mono text-xs">/play-playlist</span>.</p>
-      </article>
-      <article class="glass-panel p-8">
-        <div class="w-11 h-11 rounded-input bg-magenta/20 border border-magenta/40 grid place-items-center mb-5" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-magenta"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <h3 class="font-display font-bold text-lg mb-2">Challenges</h3>
+        <p class="text-muted text-sm leading-relaxed">
+          Freestyle battles, song-pick challenges, 30-second solos. We post them, you show up. The point isn't winning — it's the reps.
+        </p>
+      </div>
+      <div class="card p-8">
+        <div class="w-10 h-10 rounded-lg bg-magenta/15 border border-magenta/30 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-magenta"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
         </div>
         <h3 class="font-display font-bold text-lg mb-2">Giveaways</h3>
-        <p class="text-dim text-sm leading-sm">One tap to enter from Discord. Winners drawn fair, re-rolls when the mood strikes.</p>
-      </article>
-      <article class="glass-panel p-8">
-        <div class="w-11 h-11 rounded-input bg-cyan/20 border border-cyan/40 grid place-items-center mb-5" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-cyan"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+        <p class="text-muted text-sm leading-relaxed">
+          Showcase tickets, merch, spot prizes. One tap to enter, winners drawn in the open. The house always gives back.
+        </p>
+      </div>
+      <div class="card p-8">
+        <div class="w-10 h-10 rounded-lg bg-cyan/15 border border-cyan/30 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
         </div>
         <h3 class="font-display font-bold text-lg mb-2">Announcements</h3>
-        <p class="text-dim text-sm leading-sm">Admins broadcast straight to the server from the browser — no leaving the stage.</p>
-      </article>
+        <p class="text-muted text-sm leading-relaxed">
+          Session moved? New challenge dropping? We post it here so nobody's left wondering. No rumors, no hearsay.
+        </p>
+      </div>
+      <div class="card p-8">
+        <div class="w-10 h-10 rounded-lg bg-violet/15 border border-violet/30 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-violet"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <h3 class="font-display font-bold text-lg mb-2">Playlists</h3>
+        <p class="text-muted text-sm leading-relaxed">
+          The soundtrack of the floor. Members share what they warm up to, cool down to, and everything in between — so no one moves alone.
+        </p>
+      </div>
     </div>
+  </section>
+
+  {# ── Testimonials / social proof ───────────────────────────────────────── #}
+  <section class="mx-auto max-w-shell px-6 lg:px-16 pb-20">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="card p-10 relative overflow-hidden">
+        <div class="absolute top-3 left-5 text-violet/20 text-7xl font-display select-none" aria-hidden="true">"</div>
+        <blockquote class="relative z-10">
+          <p class="text-base md:text-lg leading-relaxed text-paper/90 italic">
+            I entered the giveaway on a whim. Didn't win — but I stayed for a challenge, then came to a session, and now Friday is the best part of my week.
+          </p>
+          <footer class="mt-6 text-muted text-sm">— a member who showed up for the free stuff</footer>
+        </blockquote>
+      </div>
+      <div class="card p-10 relative overflow-hidden">
+        <div class="absolute top-3 left-5 text-magenta/20 text-7xl font-display select-none" aria-hidden="true">"</div>
+        <blockquote class="relative z-10">
+          <p class="text-base md:text-lg leading-relaxed text-paper/90 italic">
+            First time I freestyled in front of people here, I froze for five seconds. Somebody yelled "keep moving." So I did. Nobody laughed — everybody clapped.
+          </p>
+          <footer class="mt-6 text-muted text-sm">— a member who froze, then kept moving</footer>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  {# ── CTA ───────────────────────────────────────────────────────────────── #}
+  <section class="mx-auto max-w-shell px-6 lg:px-16 pb-24 text-center">
+    <h2 class="font-display text-2xl lg:text-3xl font-bold mb-4">Ready to step on the floor?</h2>
+    <p class="text-muted max-w-md mx-auto mb-8">
+      No tryouts. No waiting list. Create an account and find your people.
+    </p>
+    {% if current_claims %}
+      <a href="{{ url_for('dashboard.home') }}" class="btn-primary text-base px-8 py-3">Go to the dashboard</a>
+    {% else %}
+      <a href="{{ url_for('auth.register') }}" class="btn-primary text-base px-8 py-3">Create your account — it's free</a>
+    {% endif %}
   </section>
 </main>
 
-<footer class="border-t border-white/10 py-10 text-center">
-  <p class="text-dim text-sm">
-    <a href="mailto:freedomfordance@gmail.com" class="hover:text-paper transition-colors">freedomfordance@gmail.com</a>
-  </p>
-  <p class="text-dim/70 text-xs mt-2">© 2026 Freedom for Dance</p>
+{# ── Footer ─────────────────────────────────────────────────────────────── #}
+<footer class="border-t border-white/8">
+  <div class="mx-auto max-w-shell px-6 lg:px-16 py-12">
+    <div class="flex flex-col md:flex-row justify-between gap-8">
+      <div class="max-w-xs">
+        {% set logo_class = 'h-8 w-auto' %}{% include "partials/logo.html" %}
+        <p class="text-muted text-sm mt-3 leading-relaxed">
+          A community for dancers who believe the floor belongs to everyone.
+        </p>
+      </div>
+      <div class="flex gap-12">
+        <div>
+          <h4 class="font-display font-bold text-sm mb-3">Platform</h4>
+          <ul class="space-y-2 text-sm text-muted">
+            <li><a href="{{ url_for('main.index') }}" class="hover:text-paper transition-colors">Home</a></li>
+            {% if current_claims %}
+              <li><a href="{{ url_for('dashboard.home') }}" class="hover:text-paper transition-colors">Dashboard</a></li>
+              <li><a href="{{ url_for('auth.logout') }}" class="hover:text-paper transition-colors">Sign out</a></li>
+            {% else %}
+              <li><a href="{{ url_for('auth.login') }}" class="hover:text-paper transition-colors">Sign in</a></li>
+              <li><a href="{{ url_for('auth.register') }}" class="hover:text-paper transition-colors">Join</a></li>
+            {% endif %}
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-display font-bold text-sm mb-3">Connect</h4>
+          <ul class="space-y-2 text-sm text-muted">
+            <li><a href="mailto:freedomfordance@gmail.com" class="hover:text-paper transition-colors">Email us</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="mt-10 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between gap-2 text-xs text-muted/60">
+      <p>© 2026 Freedom for Dance. All rights reserved.</p>
+      <p>Built with care by people who'd rather be dancing.</p>
+    </div>
+  </div>
 </footer>
 {% endblock %}

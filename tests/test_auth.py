@@ -1,136 +1,130 @@
-"""OAuth flow (§7.1) with a mocked Discord API, plus CSRF enforcement (§8)."""
+"""Auth tests — register, login, logout, CSRF."""
 
 from __future__ import annotations
 
-from unittest import mock
-
-from extensions import db, oauth
+from extensions import db
 from models import User
 
 from conftest import csrf_of
 
 
-# ── OAuth callback (§9.1: "including the OAuth callback with a mocked
-#    Discord API response") ──────────────────────────────────────────────────
-
-def _mock_oauth(monkeypatch, profile, guilds):
-    discord_app = oauth.discord  # construct the registered client once
-    monkeypatch.setattr(
-        discord_app, "authorize_access_token", lambda: {"access_token": "tok123"}
-    )
-    monkeypatch.setattr(
-        "services.discord_api.fetch_current_user",
-        lambda access_token, config: profile,
-    )
-    monkeypatch.setattr(
-        "services.discord_api.fetch_user_guilds",
-        lambda access_token, config: guilds,
-    )
+def _get_csrf(client):
+    """GET any page to seed the CSRF cookie, then return the token."""
+    client.get("/auth/login")
+    return csrf_of(client)
 
 
-def test_oauth_callback_member_flow(app, client, monkeypatch):
-    """Member login: callback serves the signing-in page with ONE session
-    cookie, and the cookie round-trips to the dashboard."""
-    _mock_oauth(
-        monkeypatch,
-        profile={"id": "777", "username": "choreo", "avatar": "abc123"},
-        guilds=[{"id": "123456789012345678", "permissions": str(1 << 3)}],  # ADMINISTRATOR
-    )
-    resp = client.get("/auth/callback")
-    # Same-origin 200 page (not a 302 in the cross-site redirect chain).
-    assert resp.status_code == 200
-    assert b"/playlists" in resp.data  # the page bounces to the dashboard
-    session_headers = [
-        h for h in resp.headers.getlist("Set-Cookie") if h.startswith("ffd_session=")
-    ]
-    assert len(session_headers) == 1  # exactly one, never a conflicting delete
-    assert "Max-Age=0" not in session_headers[0]
-
-    # The cookie survives into the next request — the full browser flow.
-    landed = client.get("/playlists")
-    assert landed.status_code == 200
+def test_register_creates_user(app, client):
+    csrf = _get_csrf(client)
+    resp = client.post("/auth/register", data={
+        "username": "newdancer", "email": "new@test.com",
+        "password": "password123", "confirm_password": "password123",
+        "csrf_token": csrf,
+    }, follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == "/onboarding"
 
     with app.app_context():
-        user = db.session.get(User, 777)
+        user = User.query.filter_by(email="new@test.com").first()
         assert user is not None
-        assert user.username == "choreo"
-        assert user.avatar_hash == "abc123"
-        assert user.is_admin is True  # ADMINISTRATOR bit computed at login
+        assert user.username == "newdancer"
 
 
-def test_oauth_callback_member_flow_stale_cookie(app, client, monkeypatch):
-    """A stale/garbage cookie in the jar must not prevent the fresh login
-    cookie from replacing it (§9.1 stale-cookie scenario)."""
-    _mock_oauth(
-        monkeypatch,
-        profile={"id": "777", "username": "choreo", "avatar": "abc123"},
-        guilds=[{"id": "123456789012345678", "permissions": str(1 << 3)}],
-    )
-    client.set_cookie("ffd_session", "garbage.token.that.fails.jwt.decode")
-    resp = client.get("/auth/callback")
+def test_register_sets_session_cookie(app, client):
+    csrf = _get_csrf(client)
+    client.post("/auth/register", data={
+        "username": "dancer2", "email": "d2@test.com",
+        "password": "password123", "confirm_password": "password123",
+        "csrf_token": csrf,
+    }, follow_redirects=False)
+    # Session cookie was set during the redirect — test client stores it
+    resp = client.get("/home")
     assert resp.status_code == 200
-    assert b"/playlists" in resp.data
-    assert client.get("/playlists").status_code == 200
+    assert b"What's happening" in resp.data
 
 
-def test_oauth_callback_non_member_flow(app, client, monkeypatch):
-    _mock_oauth(
-        monkeypatch,
-        profile={"id": "888", "username": "visitor", "avatar": None},
-        guilds=[],  # not in the guild
-    )
-    resp = client.get("/auth/callback")
+def test_register_rejects_duplicate_email(app, client):
+    csrf = _get_csrf(client)
+    client.post("/auth/register", data={
+        "username": "first", "email": "dupe@test.com",
+        "password": "password123", "confirm_password": "password123",
+        "csrf_token": csrf,
+    })
+    csrf = _get_csrf(client)
+    resp = client.post("/auth/register", data={
+        "username": "second", "email": "dupe@test.com",
+        "password": "password123", "confirm_password": "password123",
+        "csrf_token": csrf,
+    }, follow_redirects=True)
+    assert b"already exists" in resp.data
+
+
+def test_register_rejects_mismatched_passwords(app, client):
+    csrf = _get_csrf(client)
+    resp = client.post("/auth/register", data={
+        "username": "x", "email": "x@test.com",
+        "password": "password123", "confirm_password": "different",
+        "csrf_token": csrf,
+    })
+    # Should get 200 (re-rendered form with errors), not 302
     assert resp.status_code == 200
-    assert b"/not-member" in resp.data
-
-    with app.app_context():
-        user = db.session.get(User, 888)
-        assert user is not None
-        assert user.is_admin is False
+    assert b"don" in resp.data  # flash msg has JSON-encoded apostrophe
 
 
-def test_oauth_callback_denied(app, client, monkeypatch):
-    discord_app = oauth.discord
-    monkeypatch.setattr(
-        discord_app,
-        "authorize_access_token",
-        mock.Mock(side_effect=Exception("access_denied")),
-    )
-    resp = client.get("/auth/callback")
-    assert resp.status_code == 302  # bounced to landing, not a 500
+def test_login_works(app, client):
+    csrf = _get_csrf(client)
+    _register(client, "alice", "alice@test.com", csrf)
+    client.get("/auth/logout")
+
+    csrf = _get_csrf(client)
+    resp = client.post("/auth/login", data={
+        "email": "alice@test.com", "password": "password123",
+        "csrf_token": csrf,
+    }, follow_redirects=False)
+    assert resp.status_code == 302
+    # New users go to onboarding first; seeded users go to /home
+    assert resp.headers["Location"] in ("/home", "/onboarding")
 
 
-# ── CSRF (§8) ───────────────────────────────────────────────────────────────
+def test_login_rejects_wrong_password(app, client):
+    csrf = _get_csrf(client)
+    _register(client, "bob", "bob@test.com", csrf)
+    client.get("/auth/logout")
 
-def test_post_without_csrf_rejected(app, client):
-    with app.app_context():
-        from services.auth import create_session_token
+    csrf = _get_csrf(client)
+    resp = client.post("/auth/login", data={
+        "email": "bob@test.com", "password": "wrongpassword",
+        "csrf_token": csrf,
+    }, follow_redirects=True)
+    assert b"Wrong email or password" in resp.data
 
-        token = create_session_token(
-            discord_id=111, username="a", avatar_hash=None,
-            is_admin=False, guild_member=True,
-        )
-    client.set_cookie("ffd_session", token)
-    resp = client.post("/api/playlists", json={"name": "X", "tracks": []})
+
+def test_logout_clears_session(app, client):
+    csrf = _get_csrf(client)
+    _register(client, "carl", "carl@test.com", csrf)
+    resp = client.get("/auth/logout", follow_redirects=False)
+    assert resp.status_code == 302
+
+    resp = client.get("/playlists", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "auth/login" in resp.headers["Location"]
+
+
+def test_dashboard_requires_login(client):
+    resp = client.get("/playlists", follow_redirects=False)
+    assert resp.status_code == 302
+
+
+def test_post_without_csrf_rejected(app, member_client):
+    resp = member_client.post("/api/playlists", json={"name": "X", "tracks": []})
     assert resp.status_code == 400
     assert resp.get_json()["error"]["code"] == "csrf_missing"
 
 
-def test_post_with_csrf_accepted(app, client):
-    with app.app_context():
-        db.session.add(User(discord_id=111, username="a"))
-        db.session.commit()
-        from services.auth import create_session_token
-
-        token = create_session_token(
-            discord_id=111, username="a", avatar_hash=None,
-            is_admin=False, guild_member=True,
-        )
-    client.set_cookie("ffd_session", token)
-    client.get("/playlists")
-    csrf = csrf_of(client)
-
-    resp = client.post(
+def test_post_with_csrf_accepted(app, member_client):
+    member_client.get("/playlists")  # seed CSRF
+    csrf = csrf_of(member_client)
+    resp = member_client.post(
         "/api/playlists",
         json={"name": "Valid", "tracks": []},
         headers={"X-CSRF-Token": csrf},
@@ -138,21 +132,19 @@ def test_post_with_csrf_accepted(app, client):
     assert resp.status_code == 201
 
 
-def test_tampered_csrf_rejected(app, client):
-    with app.app_context():
-        db.session.add(User(discord_id=111, username="a"))
-        db.session.commit()
-        from services.auth import create_session_token
-
-        token = create_session_token(
-            discord_id=111, username="a", avatar_hash=None,
-            is_admin=False, guild_member=True,
-        )
-    client.set_cookie("ffd_session", token)
-    client.get("/playlists")
-    resp = client.post(
+def test_tampered_csrf_rejected(app, member_client):
+    member_client.get("/playlists")
+    resp = member_client.post(
         "/api/playlists",
         json={"name": "Forged", "tracks": []},
         headers={"X-CSRF-Token": "forged-value"},
     )
     assert resp.status_code == 400
+
+
+def _register(client, username, email, csrf):
+    client.post("/auth/register", data={
+        "username": username, "email": email,
+        "password": "password123", "confirm_password": "password123",
+        "csrf_token": csrf,
+    })

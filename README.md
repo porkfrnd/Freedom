@@ -1,185 +1,118 @@
 # Freedom for Dance
 
-> _Dancing is a form of expression and we must push it forward._
+A community platform for dancers — challenges, giveaways, playlists, and the people who make the floor come alive.
 
-> **Status: development build.** This is a work-in-progress codebase —
-> developmental and known to be bug-filled. It's shared for iteration and
-> learning, not production software. The test suite passes and the stack
-> boots, but expect rough edges.
+> ⚠️ **Development build** — this is shared for iteration, not production software.
 
-A single-service web app + Discord bot for one dance community's server:
-members sign in with Discord, browse and share music playlists, play them
-in voice channels via Lavalink, enter giveaways, and let admins broadcast
-announcements and run moderation — all from one Flask process.
+---
 
-## Architecture at a glance
+## What it does
 
-| Layer | Choice |
-|---|---|
-| Runtime | Python 3.11+ (developed on 3.13) |
-| Web | Flask + Flask-SQLAlchemy, blueprints per domain |
-| Auth | Authlib (Discord OAuth2) → JWT in an httponly/Secure/SameSite=Lax cookie (§3.2) |
-| Bot | discord.py 2.x in ONE daemon thread sharing the process (§3.1) |
-| Voice | wavelink 3.x over a Lavalink node, reconnect-with-backoff |
-| AI moderation | Groq async client + circuit breaker (log-only fallback) |
-| DB | Neon Postgres (serverless) via SQLAlchemy; small pool (§3.3) |
-| Migrations | Alembic — every schema change ships a migration |
-| Frontend | Jinja2 + Tailwind (CDN, layout only) + hand-written `tokens.css` (§5) |
-| Deploy | Single Render Web Service, gunicorn workers=1 (§10) |
+- **Challenges** — admins and teachers post dance challenges with deadlines; members submit YouTube/Instagram links
+- **Giveaways** — members enter with one click, winners drawn fairly and shown in the open
+- **Announcements** — categorized news (Challenge / Change / Event / General)
+- **Playlists** — shared music sets with an embedded YouTube player — click a track, it plays in-page. Save your favorites with the heart button
+- **Events** — session calendar with RSVP (going / maybe)
+- **Members** — searchable directory with dance style filters
+- **Leaderboard** — community stats ranked by challenges, playlists, and giveaways
+- **User profiles** — avatar, bio, dance styles, social links, activity stats
+- **Settings** — change password, email, username, avatar color, accent theme, privacy controls
+- **Dark/Light mode** — toggle with 6 accent color options
+- **Teacher role** — teachers can post challenges; admins manage roles
+- **Admin panel** — user management, role promotion, UID search
+- **Onboarding** — first-time flow to pick dance styles and avatar color
 
-```
-┌────────────────────────────── Flask process ──────────────────────────────┐
-│  Gunicorn worker (threads=4)                                              │
-│   ├─ Web layer: blueprints (main/auth/dashboard/api) + JWT + CSRF        │
-│   ├─ Bot thread: discord.py asyncio loop (cogs: moderation, music,       │
-│   │               giveaways, announcements) — BotRuntime.submit() bridge │
-│   └─ APScheduler thread: giveaway sweep, mod-log purge, membership check │
-│                                │                                         │
-│                    ┌───────────┴────────────┐                            │
-│                    ▼                        ▼                            │
-│              Neon Postgres          Discord API / Lavalink / Groq        │
-└───────────────────────────────────────────────────────────────────────────┘
-```
+## Tech stack
 
-## Repository layout
+- **Backend:** Flask + SQLAlchemy + Jinja2
+- **Auth:** Email/password with bcrypt + JWT session cookies
+- **Database:** SQLite (dev) / PostgreSQL (production via Render)
+- **Frontend:** Tailwind CSS (CDN) + vanilla JS — no framework
+- **Fonts:** Space Grotesk (display) + Inter (body)
+- **Deploy:** Render (single-service, `gunicorn`)
 
-```
-app.py                 application factory + process bootstrap
-config.py              env-driven configuration
-models.py              SQLAlchemy schema (single source of truth)
-extensions.py          shared singletons (db, oauth)
-blueprints/            main · auth · dashboard · api
-bot/                   engine (thread + client) · scheduler · cogs · views
-services/              auth (JWT) · discord_api · groq_moderation · lavalink
-utils/                 logging · security (CSRF) · ratelimit · decorators
-static/                css/tokens.css · css/app.css · js/app.js
-templates/             Jinja pages (design system §5)
-migrations/            Alembic migrations
-scripts/seed_db.py     dev-only seed data (hard-gated to FLASK_ENV=development)
-tests/                 pytest suite (§9.1 minimum list)
-```
-
-## Local development
+## Quick start
 
 ```bash
-# 1. Install
-python -m venv .venv && source .venv/bin/activate
+# Clone
+git clone https://github.com/porkfrnd/Freedom.git
+cd Freedom
+
+# Create virtualenv
+python3 -m venv .
+source bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# 2. Configure
-cp .env.example .env          # fill in Discord credentials etc.
+# Set up environment
+cp .env.example .env
+# Edit .env with your values (SECRET_KEY at minimum)
 
-# 3. Create the schema (SQLite fallback when DATABASE_URL is unset)
-alembic upgrade head
+# Seed the database with demo data
+FLASK_ENV=development python scripts/seed_db.py
 
-# 4. Optional: dummy data (development only)
-python scripts/seed_db.py
-
-# 5. Run web-only
+# Run
 flask run
-
-# 6. Run the bot thread locally
-#    The bot starts automatically at boot when DISCORD_BOT_TOKEN is set
-#    (guarded against the dev reloader double-start). If you only want the
-#    web app, leave DISCORD_BOT_TOKEN empty — everything web still works.
 ```
 
-The dev reloader spawns a child process; the bot thread is started only in
-the child (`WERKZEUG_RUN_MAIN` guard + an idempotent start lock), so it
-never double-connects.
+Opens at `http://localhost:5000`.
 
-### Running a Lavalink node locally (optional, for music)
+## Demo accounts
 
-1. Download a [Lavalink v4](https://github.com/lavalink-devs/Lavalink/releases) jar.
-2. Create `application.yml` with a password, then `java -jar Lavalink.jar`.
-3. Point `LAVALINK_URI` / `LAVALINK_PASSWORD` at it and restart the app.
+| Account | Email | Password | Role |
+|---|---|---|---|
+| Admin | `demo@freedom.dance` | `demo1234` | Can post everything, manage users |
+| Teacher | `teacher@freedom.dance` | `teacher123` | Can post challenges |
+| Members | `mira@`, `dante@`, `noor@freedom.dance` | `password123` | Standard members |
+
+## Project structure
+
+```
+├── app.py                  # Flask app factory
+├── config.py               # Configuration (env vars)
+├── models.py               # SQLAlchemy models
+├── extensions.py           # db instance
+├── blueprints/
+│   ├── main.py             # Landing page
+│   ├── auth.py             # Register / login / logout
+│   ├── dashboard.py        # Community hub (challenges, giveaways, etc.)
+│   ├── settings.py         # User settings + profile pages
+│   └── api.py              # Playlist REST API
+├── services/
+│   └── auth.py             # JWT token creation/verification
+├── utils/
+│   ├── decorators.py       # require_login, require_admin, require_teacher
+│   ├── logging.py          # Structured logging
+│   ├── ratelimit.py        # Simple rate limiter
+│   └── security.py         # CSRF protection
+├── templates/              # Jinja2 templates
+├── static/                 # CSS, JS, images
+├── tests/                  # pytest test suite
+├── scripts/
+│   └── seed_db.py          # Demo data seeder
+├── migrations/             # Alembic (Postgres migrations)
+└── requirements.txt
+```
+
+## Running tests
+
+```bash
+FFD_SKIP_APP_CREATION=1 FLASK_ENV=development python -m pytest tests/ -q
+```
 
 ## Environment variables
 
-All secrets come from the environment only — never hardcoded, never logged.
-See `.env.example` for the full annotated list. The essentials:
+See `.env.example` for the full list. Required:
 
-| Variable | Purpose |
-|---|---|
-| `SECRET_KEY` | Signs JWT sessions + CSRF tokens |
-| `BASE_URL` | Public origin, builds the OAuth redirect URI |
-| `DISCORD_CLIENT_ID/SECRET` | OAuth2 app credentials |
-| `DISCORD_BOT_TOKEN` | Bot connection + live admin re-verification |
-| `DISCORD_GUILD_ID` | The single guild this app serves (§7.2) |
-| `DATABASE_URL` | Neon Postgres DSN (unset → local SQLite dev DB) |
-| `GROQ_API_KEY` | AI moderation (unset → moderation listener idle) |
-| `LAVALINK_URI/PASSWORD` | Music playback node |
-| `SENTRY_DSN` | Error tracking (unset → clean no-op) |
+- `SECRET_KEY` — JWT signing key (any long random string)
+- `DATABASE_URL` — Postgres URL for production (SQLite used automatically in dev)
 
-## Security model
+Optional:
 
-* **Sessions** are stateless JWTs (12h, silently refreshed) in a
-  `SameSite=Lax` cookie (`secure` in production; `httponly` in production,
-  but off in local dev because some browsers/privacy extensions refuse
-  HttpOnly cookies on `localhost` — the signed JWT and separate CSRF
-  protection make JS-readable cookies acceptable there).
-  `is_admin`/`guild_member` are hints for read-only views only.
-* **Admin actions are always live-verified**: every admin-gated route
-  re-checks guild membership and the Discord `ADMINISTRATOR` bit through
-  the bot token (cached ≤5 min). A stale cookie that claims admin but
-  fails the live check is blocked and its session invalidated.
-* A **background job** re-checks membership for recently active users
-  every 15 minutes; leaving the guild bumps `session_version`, which
-  instantly kills any outstanding JWT.
-* **CSRF** is a signed double-submit token (`ffd_csrf` cookie + header or
-  form field) on every state-changing request.
-* Jinja autoescaping stays on; user content is never marked `|safe`.
+- `FLASK_ENV` — `development` or `production`
+- `JWT_TTL_HOURS` — Session lifetime (default: 24)
 
-## Moderation log data retention (user data)
+## License
 
-`ModerationLog.content` stores the text of flagged messages. This is user
-data, retained only as long as the repeat-offense escalation window needs
-it (§6.2) **plus a fixed 90-day audit period** (`MOD_LOG_CONTENT_RETENTION_DAYS`).
-A daily scheduled job nulls out `content` for entries older than that;
-the audit row (user, category, tier, action, timestamp, reasoning) is kept
-indefinitely. `content_purged` flags rows whose message text has been
-dropped.
-
-## Giveaway behavior notes
-
-* Entries are recorded in the DB (`Giveaway.entrants`, JSONB) with
-  duplicate protection and a per-user rate limit on the button.
-* The winner sweep runs every 30 seconds — no blocking sleeps.
-* **Fewer entrants than winners is handled**: everyone who entered wins,
-  the shortfall is logged, and a note posts to the channel.
-* Re-rolls append to `winners` and post a follow-up message — history is
-  never silently overwritten.
-
-## Deployment (Render)
-
-1. Push this repo to GitHub and create a new Blueprint from `render.yaml`.
-2. In the dashboard, fill the manual env vars (`sync: false` group):
-   Discord credentials, guild ID, channel IDs, Groq key, Lavalink node,
-   `BASE_URL` pointing at your Render URL.
-3. `render.yaml` wires `DATABASE_URL` to the managed Postgres, runs
-   `alembic upgrade head` in `preDeployCommand` before the web process
-   starts, and points the health check at `/healthz` (DB + bot-thread
-   liveness).
-
-Discord OAuth: in your Discord developer application, add the redirect URI
-`https://<your-app>.onrender.com/auth/callback`. Enable the bot with the
-**message content** intent (moderation) and add the bot to the guild.
-
-Note: the bot connects and every non-moderation feature works even if the
-**Message Content** intent is not enabled — it logs a
-`privileged_intents_falling_back_no_message_content` line and the AI
-moderation listener stays idle until the intent is switched on in the
-developer portal (Bot → Privileged Gateway Intents).
-
-## Testing
-
-```bash
-pytest            # 54 tests — guards, OAuth (mocked), moderation matrix,
-                  # circuit breaker, giveaway draws, playlist validation,
-                  # CSRF. Never touches real Discord/Groq/Lavalink.
-```
-
-## Non-goals (§13)
-
-No native mobile app, no payments, single-guild only, dark theme only, no
-livestream/video.
+Not yet licensed. All rights reserved by the Freedom for Dance team.

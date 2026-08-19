@@ -1,1 +1,1 @@
-"""Service layer: auth (JWT), Discord REST helpers, Groq moderation, Lavalink."""
+"""Service layer: auth (JWT session management)."""

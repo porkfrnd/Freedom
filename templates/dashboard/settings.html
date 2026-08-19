@@ -1,0 +1,443 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block panel %}
+<div class="max-w-2xl">
+  <div class="mb-8">
+    <h1 class="font-display text-xl font-bold">Settings</h1>
+    <p class="text-muted text-sm mt-1">Manage your account, profile, and preferences.</p>
+  </div>
+
+  {# ── Profile ────────────────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Profile</h2>
+    <form method="POST" action="{{ url_for('settings.update_profile') }}" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {# Avatar preview + color picker #}
+      <div class="flex items-center gap-4">
+        <span id="avatar-preview" class="w-16 h-16 rounded-full border-2 flex items-center justify-center font-display font-bold text-xl {{ user.avatar_bg }}">
+          {{ user.avatar_initial }}
+        </span>
+        <div>
+          <p class="text-sm font-medium mb-2">Avatar color</p>
+          <div class="flex gap-2">
+            {% for key, label, hex in avatar_colors %}
+              <button type="button" data-avatar-color="{{ key }}" data-hex="{{ hex }}"
+                      class="color-swatch w-7 h-7 rounded-full border-2 transition-all {% if user.avatar_color == key %}ring-2 ring-offset-2 ring-offset-[#0B0A14]{% endif %}"
+                      style="background: {{ hex }}; {% if user.avatar_color == key %}ring-color: {{ hex }};{% endif %}"
+                      title="{{ label }}"></button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="avatar_color" id="avatar_color_input" value="{{ user.avatar_color }}">
+        </div>
+      </div>
+
+      <div>
+        <label for="display_name" class="block text-sm font-medium mb-1.5">Display name</label>
+        <input type="text" id="display_name" name="display_name" value="{{ user.display_name }}" maxlength="32"
+               placeholder="What people see" class="input-field w-full">
+        <p class="text-xs text-muted mt-1">Shown on your profile and next to your avatar.</p>
+      </div>
+
+      <div>
+        <label for="bio" class="block text-sm font-medium mb-1.5">Bio</label>
+        <textarea id="bio" name="bio" maxlength="200" rows="3"
+                  placeholder="Tell the community about yourself…" class="input-field w-full">{{ user.bio }}</textarea>
+        <p class="text-xs text-muted mt-1"><span id="bio-count">{{ user.bio | length }}</span>/200</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-2">Dance styles</label>
+        <div class="flex flex-wrap gap-2">
+          {% for style in dance_styles %}
+            <label class="style-chip cursor-pointer select-none">
+              <input type="checkbox" name="dance_styles" value="{{ style }}"
+                     {% if style in user.dance_styles %}checked{% endif %} class="hidden">
+              <span class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all
+                {% if style in user.dance_styles %}
+                  bg-violet/15 border-violet/40 text-violet
+                {% else %}
+                  bg-transparent border-white/10 text-muted hover:border-white/20
+                {% endif %}">{{ style }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary text-sm">Save profile</button>
+    </form>
+  </section>
+
+  {# ── Social links ──────────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Social links</h2>
+    <p class="text-muted text-sm mb-4">Shown on your public profile. Leave blank to hide.</p>
+    <form method="POST" action="{{ url_for('settings.update_social') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="flex items-center gap-3">
+        <span class="text-muted text-sm w-20 shrink-0">Instagram</span>
+        <input type="text" name="instagram" value="{{ user.instagram }}" placeholder="@username"
+               maxlength="64" class="input-field flex-1">
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-muted text-sm w-20 shrink-0">YouTube</span>
+        <input type="text" name="youtube" value="{{ user.youtube }}" placeholder="channel name or URL"
+               maxlength="64" class="input-field flex-1">
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-muted text-sm w-20 shrink-0">TikTok</span>
+        <input type="text" name="tiktok" value="{{ user.tiktok }}" placeholder="@username"
+               maxlength="64" class="input-field flex-1">
+      </div>
+      <button type="submit" class="btn-primary text-sm">Save links</button>
+    </form>
+  </section>
+
+  {# ── Appearance ─────────────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Appearance</h2>
+    <p class="text-muted text-sm mb-4">These settings are stored in your browser — they don't affect anyone else.</p>
+
+    {# Accent color #}
+    <div class="mb-6">
+      <p class="text-sm font-medium mb-3">Accent color</p>
+      <div class="flex gap-3">
+        {% for key, label, hex in accent_colors %}
+          <button type="button" data-accent="{{ key }}" data-hex="{{ hex }}"
+                  class="accent-swatch w-9 h-9 rounded-full border-2 transition-all {% if key == 'magenta' %}ring-2 ring-offset-2{% endif %}"
+                  style="background: {{ hex }}; {% if key == 'magenta' %}--tw-ring-color: {{ hex }};{% endif %}" title="{{ label }}"></button>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Theme toggle (links to the same system as the header button) #}
+    <div class="mb-4">
+      <p class="text-sm font-medium mb-3">Theme</p>
+      <div class="flex gap-3">
+        <button type="button" id="theme-dark-btn"
+                class="flex items-center gap-2 px-4 py-2 rounded-card border transition-all text-sm border-white/10 text-muted hover:border-white/20">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          Dark
+        </button>
+        <button type="button" id="theme-light-btn"
+                class="flex items-center gap-2 px-4 py-2 rounded-card border transition-all text-sm
+                       border-white/10 text-muted hover:border-white/20">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          Light
+        </button>
+      </div>
+    </div>
+  </section>
+
+  {# ── Privacy ────────────────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Privacy</h2>
+    <form method="POST" action="{{ url_for('settings.update_privacy') }}" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+        <div>
+          <p class="text-sm font-medium">Public profile</p>
+          <p class="text-xs text-muted">Other members can view your profile page.</p>
+        </div>
+        <input type="checkbox" name="profile_public" {% if user.profile_public %}checked{% endif %}
+               class="accent-[--violet] w-4 h-4 shrink-0">
+      </label>
+
+      <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+        <div>
+          <p class="text-sm font-medium">Show email</p>
+          <p class="text-xs text-muted">Display your email on your profile.</p>
+        </div>
+        <input type="checkbox" name="show_email" {% if user.show_email %}checked{% endif %}
+               class="accent-[--violet] w-4 h-4 shrink-0">
+      </label>
+
+      <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+        <div>
+          <p class="text-sm font-medium">Show join date</p>
+          <p class="text-xs text-muted">Display "Member since" on your profile.</p>
+        </div>
+        <input type="checkbox" name="show_join_date" {% if user.show_join_date %}checked{% endif %}
+               class="accent-[--violet] w-4 h-4 shrink-0">
+      </label>
+
+      <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+        <div>
+          <p class="text-sm font-medium">Show activity</p>
+          <p class="text-xs text-muted">Display your challenges, playlists, and giveaways on your profile.</p>
+        </div>
+        <input type="checkbox" name="show_activity" {% if user.show_activity %}checked{% endif %}
+               class="accent-[--violet] w-4 h-4 shrink-0">
+      </label>
+
+      <button type="submit" class="btn-primary text-sm">Save privacy</button>
+    </form>
+  </section>
+
+  {# ── Change username ────────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Change username</h2>
+    <form method="POST" action="{{ url_for('settings.change_username') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="new_username" class="block text-sm font-medium mb-1.5">New username</label>
+        <input type="text" id="new_username" name="new_username" value="{{ user.username }}" maxlength="32"
+               class="input-field w-full">
+      </div>
+      <div>
+        <label for="username_password" class="block text-sm font-medium mb-1.5">Confirm with password</label>
+        <input type="password" id="username_password" name="username_password" required
+               class="input-field w-full" placeholder="Current password">
+      </div>
+      <button type="submit" class="btn-primary text-sm">Change username</button>
+    </form>
+  </section>
+
+  {# ── Change email ───────────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Change email</h2>
+    <form method="POST" action="{{ url_for('settings.change_email') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="new_email" class="block text-sm font-medium mb-1.5">New email</label>
+        <input type="email" id="new_email" name="new_email" value="{{ user.email }}"
+               class="input-field w-full">
+      </div>
+      <div>
+        <label for="email_password" class="block text-sm font-medium mb-1.5">Confirm with password</label>
+        <input type="password" id="email_password" name="email_password" required
+               class="input-field w-full" placeholder="Current password">
+      </div>
+      <button type="submit" class="btn-primary text-sm">Change email</button>
+    </form>
+  </section>
+
+  {# ── Change password ────────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Change password</h2>
+    <form method="POST" action="{{ url_for('settings.change_password') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="current_password" class="block text-sm font-medium mb-1.5">Current password</label>
+        <input type="password" id="current_password" name="current_password" required
+               class="input-field w-full">
+      </div>
+      <div>
+        <label for="new_password" class="block text-sm font-medium mb-1.5">New password</label>
+        <input type="password" id="new_password" name="new_password" required minlength="8"
+               class="input-field w-full" placeholder="At least 8 characters">
+      </div>
+      <div>
+        <label for="confirm_password" class="block text-sm font-medium mb-1.5">Confirm new password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required
+               class="input-field w-full">
+      </div>
+      <button type="submit" class="btn-primary text-sm">Change password</button>
+    </form>
+  </section>
+
+  {# ── Your account info ──────────────────────────────────────────────── #}
+  <section class="card p-6 mb-6">
+    <h2 class="font-display font-bold mb-4">Account info</h2>
+    <div class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <span class="text-muted">UID</span>
+        <span class="font-mono">{{ format_uid(user.id) }}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-muted">Role</span>
+        {% if user.is_admin %}
+          <span class="badge badge-warning">Admin</span>
+        {% elif user.is_teacher %}
+          <span class="badge badge-live">Teacher</span>
+        {% else %}
+          <span class="badge badge-muted">Member</span>
+        {% endif %}
+      </div>
+      <div class="flex justify-between">
+        <span class="text-muted">Member since</span>
+        <span>{{ user.created_at.strftime('%b %d, %Y') }}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-muted">Last seen</span>
+        <span>{{ user.last_seen_at.strftime('%b %d, %Y at %H:%M') }}</span>
+      </div>
+    </div>
+  </section>
+
+  {# ── Danger zone ────────────────────────────────────────────────────── #}
+  <section class="card p-6 border-danger/30">
+    <h2 class="font-display font-bold mb-2 text-danger">Danger zone</h2>
+    <p class="text-muted text-sm mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
+    <button type="button" data-modal-open="delete-account" class="btn-danger text-sm">Delete my account</button>
+  </section>
+</div>
+
+{# ── Delete account modal ────────────────────────────────────────────── #}
+<div id="delete-account" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
+  <div class="absolute inset-0 bg-black/60" data-modal-close="delete-account"></div>
+  <div class="relative bg-[#151321] border border-danger/20 rounded-card w-full max-w-md p-6 shadow-2xl">
+    <h2 class="font-display font-bold text-lg text-danger mb-2">Delete your account</h2>
+    <p class="text-muted text-sm mb-4">This is permanent. All your playlists, challenges, and data will be erased.</p>
+    <form method="POST" action="{{ url_for('settings.delete_account') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Type your username: <strong>{{ user.username }}</strong></label>
+        <input type="text" name="delete_username" required class="input-field w-full" placeholder="{{ user.username }}">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Your password</label>
+        <input type="password" name="delete_password" required class="input-field w-full">
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" data-modal-close="delete-account" class="btn-ghost text-sm">Cancel</button>
+        <button type="submit" class="btn-danger text-sm">Delete forever</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  "use strict";
+
+  /* ── Avatar color picker ─────────────────────────────────────────────── */
+  var avatarInput = document.getElementById("avatar_color_input");
+  var avatarPreview = document.getElementById("avatar-preview");
+  var colorMap = {
+    violet: "bg-violet/20 border-violet/30 text-violet",
+    magenta: "bg-magenta/20 border-magenta/30 text-magenta",
+    cyan: "bg-cyan/20 border-cyan/30 text-cyan",
+    green: "bg-green-500/20 border-green-500/30 text-green-500",
+    amber: "bg-amber-500/20 border-amber-500/30 text-amber-500",
+    rose: "bg-rose-500/20 border-rose-500/30 text-rose-500"
+  };
+  document.querySelectorAll("[data-avatar-color]").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var color = this.dataset.avatarColor;
+      avatarInput.value = color;
+      // Update preview
+      avatarPreview.className = "w-16 h-16 rounded-full border-2 flex items-center justify-center font-display font-bold text-xl " + colorMap[color];
+      // Update ring
+      document.querySelectorAll("[data-avatar-color]").forEach(function(b) {
+        b.classList.remove("ring-2", "ring-offset-2");
+        b.style.removeProperty("--tw-ring-color");
+      });
+      this.classList.add("ring-2", "ring-offset-2");
+      this.style.setProperty("--tw-ring-color", this.dataset.hex);
+    });
+  });
+
+  /* ── Accent color picker ─────────────────────────────────────────────── */
+  var accentMap = {
+    violet: "#7B2FF7", magenta: "#FF2E9A", cyan: "#34E4EA",
+    rose: "#F43F5E", emerald: "#10B981", amber: "#F59E0B"
+  };
+  document.querySelectorAll("[data-accent]").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var color = this.dataset.accent;
+      var hex = this.dataset.hex;
+      document.documentElement.style.setProperty("--violet", hex);
+      localStorage.setItem("ffd_accent", color);
+      // Update ring
+      document.querySelectorAll("[data-accent]").forEach(function(b) {
+        b.classList.remove("ring-2", "ring-offset-2");
+        b.style.removeProperty("--tw-ring-color");
+      });
+      this.classList.add("ring-2", "ring-offset-2");
+      this.style.setProperty("--tw-ring-color", hex);
+    });
+  });
+
+  // Apply saved accent on load + set ring
+  var savedAccent = localStorage.getItem("ffd_accent");
+  if (savedAccent && accentMap[savedAccent]) {
+    document.documentElement.style.setProperty("--violet", accentMap[savedAccent]);
+    document.querySelectorAll("[data-accent]").forEach(function(b) {
+      if (b.dataset.accent === savedAccent) {
+        b.classList.add("ring-2", "ring-offset-2");
+        b.style.setProperty("--tw-ring-color", b.dataset.hex);
+      } else {
+        b.classList.remove("ring-2", "ring-offset-2");
+        b.style.removeProperty("--tw-ring-color");
+      }
+    });
+  }
+
+  /* ── Theme buttons — use the base template's applyTheme ──────────────── */
+  function updateThemeBtns() {
+    var theme = (typeof window.__getTheme === "function") ? window.__getTheme() : "dark";
+    var darkBtn = document.getElementById("theme-dark-btn");
+    var lightBtn = document.getElementById("theme-light-btn");
+    if (darkBtn) {
+      darkBtn.style.borderColor = theme === "dark" ? "var(--violet)" : "";
+      darkBtn.style.background = theme === "dark" ? "rgba(123,47,247,0.1)" : "";
+      darkBtn.style.color = theme === "dark" ? "var(--paper)" : "var(--muted)";
+    }
+    if (lightBtn) {
+      lightBtn.style.borderColor = theme === "light" ? "var(--violet)" : "";
+      lightBtn.style.background = theme === "light" ? "rgba(123,47,247,0.1)" : "";
+      lightBtn.style.color = theme === "light" ? "var(--paper)" : "var(--muted)";
+    }
+    // Also update accent swatch ring offset for light/dark
+    document.documentElement.style.setProperty("--ring-offset-color", theme === "light" ? "#F5F4F0" : "#0B0A14");
+  }
+  var darkBtn = document.getElementById("theme-dark-btn");
+  var lightBtn = document.getElementById("theme-light-btn");
+  if (darkBtn) darkBtn.addEventListener("click", function() {
+    if (typeof window.__applyTheme === "function") window.__applyTheme("dark");
+    updateThemeBtns();
+  });
+  if (lightBtn) lightBtn.addEventListener("click", function() {
+    if (typeof window.__applyTheme === "function") window.__applyTheme("light");
+    updateThemeBtns();
+  });
+  updateThemeBtns();
+
+  /* ── Bio character count ─────────────────────────────────────────────── */
+  var bio = document.getElementById("bio");
+  var bioCount = document.getElementById("bio-count");
+  if (bio && bioCount) {
+    bio.addEventListener("input", function() {
+      bioCount.textContent = this.value.length;
+    });
+  }
+
+  /* ── Dance style chips ─────────────────────────────────────────────── */
+  document.querySelectorAll(".style-chip input[type=checkbox]").forEach(function(cb) {
+    cb.addEventListener("change", function() {
+      var span = this.nextElementSibling;
+      if (this.checked) {
+        span.className = "px-3 py-1.5 rounded-full text-xs font-medium border transition-all bg-violet/15 border-violet/40 text-violet";
+      } else {
+        span.className = "px-3 py-1.5 rounded-full text-xs font-medium border transition-all bg-transparent border-white/10 text-muted hover:border-white/20";
+      }
+    });
+  });
+
+  /* ── Modals ──────────────────────────────────────────────────────────── */
+  document.querySelectorAll("[data-modal-open]").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var modal = document.getElementById(btn.dataset.modalOpen);
+      if (modal) modal.classList.remove("hidden");
+    });
+  });
+  document.querySelectorAll("[data-modal-close]").forEach(function(el) {
+    el.addEventListener("click", function() {
+      var modal = document.getElementById(el.dataset.modalClose);
+      if (modal) modal.classList.add("hidden");
+    });
+  });
+})();
+</script>
+
+<style>
+  .color-swatch:hover { transform: scale(1.15); }
+  .accent-swatch:hover { transform: scale(1.15); }
+</style>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "dashboard/base.html" %}
+{% block panel_title %}Announcements{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+
+{% block panel %}
+<div class="max-w-3xl">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="font-display text-xl font-bold">Announcements</h1>
+      <p class="text-muted text-sm mt-1">Challenges, changes, events — the official word.</p>
+    </div>
+    {% if can_post %}
+      <button type="button" data-modal-open="new-announcement" class="btn-primary text-sm">New announcement</button>
+    {% endif %}
+  </div>
+
+  {# ── Category filter ──────────────────────────────────────────────────── #}
+  <div class="flex flex-wrap gap-2 mb-6">
+    <a href="{{ url_for('dashboard.announcements') }}" class="badge {% if not active_category %}badge-live{% else %}badge-muted{% endif %}">All</a>
+    {% for cat in categories %}
+      <a href="{{ url_for('dashboard.announcements', category=cat) }}" class="badge {% if active_category == cat %}badge-live{% else %}badge-muted{% endif %}">{{ cat | title }}</a>
+    {% endfor %}
+  </div>
+
+  {% if announcements %}
+    <div class="space-y-4">
+      {% for a in announcements %}
+        <div class="card p-6">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="badge {% if a.category == 'CHALLENGE' %}badge-live{% elif a.category == 'CHANGE' %}badge-warning{% elif a.category == 'EVENT' %}badge-success{% else %}badge-muted{% endif %}">{{ a.category }}</span>
+            <span class="text-xs text-muted">{{ a.created_at.strftime('%b %d, %Y %H:%M') }}</span>
+          </div>
+          <h2 class="font-display font-bold text-lg">{{ a.title }}</h2>
+          <p class="text-muted text-sm leading-relaxed mt-1.5 whitespace-pre-wrap">{{ a.content }}</p>
+          <p class="text-xs text-muted mt-3">by {{ a.author.display_name if a.author else 'Admin' }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card p-12 text-center">
+      <p class="text-muted text-lg mb-2">No announcements</p>
+      <p class="text-muted/70 text-sm">{% if can_post %}Post the first one.{% else %}Nothing announced yet — check back soon.{% endif %}</p>
+    </div>
+  {% endif %}
+</div>
+
+{# ── New announcement modal (admin) ────────────────────────────────────── #}
+{% if can_post %}
+<div id="new-announcement" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New announcement">
+  <div class="absolute inset-0 bg-black/60" data-modal-close="new-announcement"></div>
+  <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-lg p-6 shadow-2xl">
+    <h2 class="font-display font-bold text-lg mb-4">Post an announcement</h2>
+    <form method="POST" action="{{ url_for('dashboard.create_announcement') }}" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="title" class="block text-sm font-medium mb-1.5">Title</label>
+        <input type="text" id="title" name="title" required maxlength="120" placeholder="e.g. New weekly session on Fridays" class="input-field w-full">
+      </div>
+      <div>
+        <label for="content" class="block text-sm font-medium mb-1.5">What's the news?</label>
+        <textarea id="content" name="content" required rows="4" placeholder="Tell the community what's changing, what's coming, what to prepare for…" class="input-field w-full resize-y"></textarea>
+      </div>
+      <div>
+        <label for="category" class="block text-sm font-medium mb-1.5">Category</label>
+        <select id="category" name="category" class="input-field w-full">
+          <option value="GENERAL">General</option>
+          <option value="CHALLENGE">Challenge</option>
+          <option value="CHANGE">Change</option>
+          <option value="EVENT">Event</option>
+        </select>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" data-modal-close="new-announcement" class="btn-ghost text-sm">Cancel</button>
+        <button type="submit" class="btn-primary text-sm">Post</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  document.querySelectorAll("[data-modal-open]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var modal = document.getElementById(btn.dataset.modalOpen);
+      if (modal) modal.classList.remove("hidden");
+    });
+  });
+  document.querySelectorAll("[data-modal-close]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var modal = document.getElementById(el.dataset.modalClose);
+      if (modal) modal.classList.add("hidden");
+    });
+  });
+})();
+</script>
+{% endblock %}
