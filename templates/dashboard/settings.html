@@ -43,9 +43,9 @@
 
       <div>
         <label for="bio" class="block text-sm font-medium mb-1.5">Bio</label>
-        <textarea id="bio" name="bio" maxlength="200" rows="3"
+        <textarea id="bio" name="bio" maxlength="150" rows="3"
                   placeholder="Tell the community about yourself…" class="input-field w-full">{{ user.bio }}</textarea>
-        <p class="text-xs text-muted mt-1"><span id="bio-count">{{ user.bio | length }}</span>/200</p>
+        <p class="text-xs text-muted mt-1"><span id="bio-count">{{ user.bio | length }}</span>/150</p>
       </div>
 
       <div>
@@ -79,17 +79,17 @@
       <div class="flex items-center gap-3">
         <span class="text-muted text-sm w-20 shrink-0">Instagram</span>
         <input type="text" name="instagram" value="{{ user.instagram }}" placeholder="@username"
-               maxlength="64" class="input-field flex-1">
+               maxlength="32" class="input-field flex-1">
       </div>
       <div class="flex items-center gap-3">
         <span class="text-muted text-sm w-20 shrink-0">YouTube</span>
         <input type="text" name="youtube" value="{{ user.youtube }}" placeholder="channel name or URL"
-               maxlength="64" class="input-field flex-1">
+               maxlength="32" class="input-field flex-1">
       </div>
       <div class="flex items-center gap-3">
         <span class="text-muted text-sm w-20 shrink-0">TikTok</span>
         <input type="text" name="tiktok" value="{{ user.tiktok }}" placeholder="@username"
-               maxlength="64" class="input-field flex-1">
+               maxlength="32" class="input-field flex-1">
       </div>
       <button type="submit" class="btn-primary text-sm">Save links</button>
     </form>
@@ -277,7 +277,7 @@
 </div>
 
 {# ── Delete account modal ────────────────────────────────────────────── #}
-<div id="delete-account" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
+<div id="delete-account" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true">
   <div class="absolute inset-0 bg-black/60" data-modal-close="delete-account"></div>
   <div class="relative bg-[#151321] border border-danger/20 rounded-card w-full max-w-md p-6 shadow-2xl">
     <h2 class="font-display font-bold text-lg text-danger mb-2">Delete your account</h2>

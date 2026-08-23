@@ -10,23 +10,26 @@ Every error uses the same shape: ``{"error": {\"code\": ..., \"message\": ...}}`
 
 from __future__ import annotations
 
-import re
-
 from flask import Blueprint, current_app, g, jsonify, request
+from sqlalchemy.orm import joinedload
 
 from extensions import db
-from models import Playlist, User, generate_playlist_id, utcnow
+from models import (
+    MAX_PLAYLIST_SAVES,
+    MAX_PLAYLIST_TRACKS,
+    PLAYLIST_NAME_MAX,
+    Playlist,
+    generate_playlist_id,
+    utcnow,
+)
 from utils.decorators import require_login
 from utils.logging import get_logger
-from utils.ratelimit import RateLimiter
+from utils.validate import URL_RE
 
 log = get_logger("blueprints.api")
 
 bp = Blueprint("api", __name__)
 
-TRACK_URL_RE = re.compile(r"^https?://[^\s]+$")
-NAME_MAX = 80
-TRACK_LIMIT = 50
 MAX_ID_ATTEMPTS = 20
 
 
@@ -38,15 +41,15 @@ def _track_errors(tracks) -> list[str]:
     """Validate a track list; returns a list of human-readable problems."""
     if not isinstance(tracks, list):
         return ["tracks must be a list."]
-    if len(tracks) > TRACK_LIMIT:
-        return [f"A playlist can hold at most {TRACK_LIMIT} tracks."]
+    if len(tracks) > MAX_PLAYLIST_TRACKS:
+        return [f"A playlist can hold at most {MAX_PLAYLIST_TRACKS} tracks."]
     problems = []
     for i, track in enumerate(tracks):
         if not isinstance(track, dict):
             problems.append(f"Track #{i + 1} must be an object.")
             continue
         url = str(track.get("url") or "")
-        if not TRACK_URL_RE.match(url):
+        if not URL_RE.match(url):
             problems.append(f"Track #{i + 1} has an invalid URL — it must start with http(s)://")
         title = str(track.get("title") or "").strip()
         if not title:
@@ -77,7 +80,7 @@ def _normalize_tracks(tracks) -> list[dict]:
 @require_login
 def list_playlists():
     mine = request.args.get("filter") == "mine"
-    query = Playlist.query
+    query = Playlist.query.options(joinedload(Playlist.creator))
     if mine:
         query = query.filter(Playlist.creator_id == g.user.id)
     else:
@@ -113,8 +116,8 @@ def create_playlist():
     name = str(data.get("name") or "").strip()
     if not name:
         return _error("invalid_name", "Give the playlist a name.", 400)
-    if len(name) > NAME_MAX:
-        return _error("invalid_name", f"Playlist name is too long ({NAME_MAX} characters max).", 400)
+    if len(name) > PLAYLIST_NAME_MAX:
+        return _error("invalid_name", f"Playlist name is too long ({PLAYLIST_NAME_MAX} characters max).", 400)
 
     tracks = data.get("tracks", [])
     problems = _track_errors(tracks)
@@ -163,8 +166,8 @@ def update_playlist(playlist_id):
         name = str(data["name"] or "").strip()
         if not name:
             return _error("invalid_name", "Give the playlist a name.", 400)
-        if len(name) > NAME_MAX:
-            return _error("invalid_name", f"Playlist name is too long ({NAME_MAX} characters max).", 400)
+        if len(name) > PLAYLIST_NAME_MAX:
+            return _error("invalid_name", f"Playlist name is too long ({PLAYLIST_NAME_MAX} characters max).", 400)
         playlist.name = name
     if "tracks" in data:
         problems = _track_errors(data["tracks"])
@@ -208,10 +211,22 @@ def toggle_save(playlist_id):
     if not playlist.is_public and playlist.creator_id != g.user.id:
         return _error("forbidden", "You can't save a private playlist.", 403)
 
-    is_saved = playlist.toggle_save(g.user.id)
-    db.session.commit()
-    log.info("playlist_save_toggled", playlist_id=playlist_id, by=g.user.id, saved=is_saved)
+    capped = (
+        not playlist.has_saved(g.user.id)
+        and len(playlist.saved_by or []) >= MAX_PLAYLIST_SAVES
+    )
+    is_saved = False if capped else playlist.toggle_save(g.user.id)
+    if not capped:
+        db.session.commit()
+    log.info(
+        "playlist_save_toggled",
+        playlist_id=playlist_id,
+        by=g.user.id,
+        saved=is_saved,
+        capped=capped,
+    )
     return jsonify({
         "saved": is_saved,
         "save_count": playlist.save_count,
+        "limit_reached": capped,
     })

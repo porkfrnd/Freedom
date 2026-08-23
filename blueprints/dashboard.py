@@ -25,17 +25,27 @@ from flask import (
 from extensions import db
 from models import (
     ANNOUNCEMENT_CATEGORIES,
+    ANNOUNCEMENT_CONTENT_MAX,
+    ANNOUNCEMENT_TITLE_MAX,
+    CHALLENGE_DESCRIPTION_MAX,
+    CHALLENGE_TITLE_MAX,
+    GIVEAWAY_DESCRIPTION_MAX,
+    GIVEAWAY_PRIZE_MAX,
+    MAX_GIVEAWAY_ENTRANTS,
+    PLAYLIST_NAME_MAX,
     Announcement,
     Challenge,
     Event,
     Giveaway,
     Playlist,
+    Submission,
     User,
     format_uid,
     generate_playlist_id,
     parse_uid,
     utcnow,
 )
+from sqlalchemy.orm import joinedload
 from utils.decorators import require_admin, require_login, require_teacher
 from utils.logging import get_logger
 
@@ -72,12 +82,11 @@ def shell():
 @bp.get("/home")
 @require_login
 def home():
-    from models import Event, Playlist, Submission, utcnow as _utcnow
-    from sqlalchemy import func
     from datetime import timedelta
 
     announcements = (
-        Announcement.query.order_by(Announcement.created_at.desc()).limit(8).all()
+        Announcement.query.options(joinedload(Announcement.author))
+        .order_by(Announcement.created_at.desc()).limit(8).all()
     )
     challenges = (
         Challenge.query.filter(Challenge.status == "ACTIVE")
@@ -102,7 +111,7 @@ def home():
 
     # ── Computed activity feed (derived from existing timestamps) ────────
     activity = []
-    now = _utcnow()
+    now = utcnow()
     week_ago = now - timedelta(days=7)
 
     # New users this week
@@ -116,7 +125,8 @@ def home():
 
     # Recent playlists
     recent_playlists = (
-        Playlist.query.filter(Playlist.is_public.is_(True), Playlist.created_at >= week_ago)
+        Playlist.query.options(joinedload(Playlist.creator))
+        .filter(Playlist.is_public.is_(True), Playlist.created_at >= week_ago)
         .order_by(Playlist.created_at.desc()).limit(5).all()
     )
     for p in recent_playlists:
@@ -132,7 +142,8 @@ def home():
 
     # Recent challenges
     recent_challenges = (
-        Challenge.query.filter(Challenge.created_at >= week_ago)
+        Challenge.query.options(joinedload(Challenge.creator))
+        .filter(Challenge.created_at >= week_ago)
         .order_by(Challenge.created_at.desc()).limit(5).all()
     )
     for c in recent_challenges:
@@ -148,7 +159,8 @@ def home():
 
     # Recent submissions
     recent_subs = (
-        Submission.query.filter(Submission.created_at >= week_ago)
+        Submission.query.options(joinedload(Submission.user), joinedload(Submission.challenge))
+        .filter(Submission.created_at >= week_ago)
         .order_by(Submission.created_at.desc()).limit(5).all()
     )
     for s in recent_subs:
@@ -191,7 +203,7 @@ def home():
 @require_login
 def announcements():
     category = request.args.get("category", "").strip().upper()
-    query = Announcement.query
+    query = Announcement.query.options(joinedload(Announcement.author))
     if category in ANNOUNCEMENT_CATEGORIES:
         query = query.filter(Announcement.category == category)
     rows = query.order_by(Announcement.created_at.desc()).limit(50).all()
@@ -216,11 +228,14 @@ def create_announcement():
     if not title:
         flash("Give the announcement a title.", "error")
         return redirect(url_for("dashboard.announcements"))
-    if len(title) > 120:
-        flash("Title is too long (120 characters max).", "error")
+    if len(title) > ANNOUNCEMENT_TITLE_MAX:
+        flash(f"Title is too long ({ANNOUNCEMENT_TITLE_MAX} characters max).", "error")
         return redirect(url_for("dashboard.announcements"))
     if not content:
         flash("Write something worth announcing.", "error")
+        return redirect(url_for("dashboard.announcements"))
+    if len(content) > ANNOUNCEMENT_CONTENT_MAX:
+        flash(f"Announcement is too long ({ANNOUNCEMENT_CONTENT_MAX} characters max).", "error")
         return redirect(url_for("dashboard.announcements"))
 
     announcement = Announcement(
@@ -272,11 +287,14 @@ def create_challenge():
     if not title:
         flash("Give the challenge a title.", "error")
         return redirect(url_for("dashboard.challenges"))
-    if len(title) > 120:
-        flash("Title is too long (120 characters max).", "error")
+    if len(title) > CHALLENGE_TITLE_MAX:
+        flash(f"Title is too long ({CHALLENGE_TITLE_MAX} characters max).", "error")
         return redirect(url_for("dashboard.challenges"))
     if not description:
         flash("Describe the challenge.", "error")
+        return redirect(url_for("dashboard.challenges"))
+    if len(description) > CHALLENGE_DESCRIPTION_MAX:
+        flash(f"Description is too long ({CHALLENGE_DESCRIPTION_MAX} characters max).", "error")
         return redirect(url_for("dashboard.challenges"))
 
     deadline = None
@@ -328,7 +346,7 @@ def giveaways():
     names = {}
     if winner_ids:
         for u in User.query.filter(User.id.in_(winner_ids)).all():
-            names[u.id] = u.display_name
+            names[u.id] = u.name
     return render_template(
         "dashboard/giveaways.html",
         giveaways=rows,
@@ -349,8 +367,8 @@ def create_giveaway():
     if not prize:
         flash("Give the prize a name.", "error")
         return redirect(url_for("dashboard.giveaways"))
-    if len(prize) > 120:
-        flash("Prize name is too long (120 characters max).", "error")
+    if len(prize) > GIVEAWAY_PRIZE_MAX:
+        flash(f"Prize name is too long ({GIVEAWAY_PRIZE_MAX} characters max).", "error")
         return redirect(url_for("dashboard.giveaways"))
 
     try:
@@ -375,7 +393,7 @@ def create_giveaway():
     giveaway = Giveaway(
         creator_id=g.user.id,
         prize=prize,
-        description=description or None,
+        description=description[:GIVEAWAY_DESCRIPTION_MAX] or None,
         deadline=deadline,
         num_winners=num_winners,
         status="ACTIVE",
@@ -402,6 +420,9 @@ def enter_giveaway(giveaway_id):
         db.session.commit()
         flash("That giveaway has already ended.", "info")
         return redirect(url_for("dashboard.giveaways"))
+    if not giveaway.has_entered(g.user.id) and len(giveaway.entrants or []) >= MAX_GIVEAWAY_ENTRANTS:
+        flash("That giveaway is full — all entries are taken.", "warning")
+        return redirect(url_for("dashboard.giveaways"))
     if not giveaway.add_entrant(g.user.id):
         flash("You're already in this one — one entry per person.", "info")
         return redirect(url_for("dashboard.giveaways"))
@@ -421,14 +442,16 @@ def draw_giveaway(giveaway_id):
     if giveaway.status == "ACTIVE" and not giveaway.has_ended:
         flash("The giveaway is still running — close it first.", "warning")
         return redirect(url_for("dashboard.giveaways"))
+    if giveaway.winners:
+        flash("Winners were already drawn for this one.", "info")
+        return redirect(url_for("dashboard.giveaways"))
 
-    giveaway.status = "ENDED"
     entrants = list(giveaway.entrants or [])
     if not entrants:
         flash("No one entered — nothing to draw.", "warning")
-        db.session.commit()
         return redirect(url_for("dashboard.giveaways"))
 
+    giveaway.status = "ENDED"
     winners = random.sample(entrants, min(giveaway.num_winners, len(entrants)))
     giveaway.winners = winners
     db.session.commit()
@@ -472,7 +495,7 @@ def promote_teacher(user_id):
     user.is_teacher = True
     db.session.commit()
     log.info("teacher_promoted", user_id=user.id)
-    flash(f"{user.display_name} is now a teacher.", "success")
+    flash(f"{user.name} is now a teacher.", "success")
     return redirect(url_for("dashboard.admin_users"))
 
 
@@ -486,7 +509,7 @@ def demote_teacher(user_id):
     user.is_teacher = False
     db.session.commit()
     log.info("teacher_demoted", user_id=user.id)
-    flash(f"{user.display_name} is no longer a teacher.", "success")
+    flash(f"{user.name} is no longer a teacher.", "success")
     return redirect(url_for("dashboard.admin_users"))
 
 
@@ -503,7 +526,7 @@ def toggle_admin(user_id):
     user.is_admin = not user.is_admin
     db.session.commit()
     log.info("admin_toggled", user_id=user.id, is_admin=user.is_admin)
-    flash(f"{user.display_name} {'is now an admin.' if user.is_admin else 'is no longer an admin.'}", "success")
+    flash(f"{user.name} {'is now an admin.' if user.is_admin else 'is no longer an admin.'}", "success")
     return redirect(url_for("dashboard.admin_users"))
 
 
@@ -514,7 +537,7 @@ def toggle_admin(user_id):
 def playlists():
     mine = request.args.get("mine") == "1"
 
-    query = Playlist.query
+    query = Playlist.query.options(joinedload(Playlist.creator))
     if mine:
         query = query.filter(Playlist.creator_id == g.user.id)
     else:
@@ -539,8 +562,8 @@ def create_playlist():
     if not name:
         flash("Give the playlist a name.", "error")
         return redirect(url_for("dashboard.playlists"))
-    if len(name) > 80:
-        flash("Playlist name is too long (80 characters max).", "error")
+    if len(name) > PLAYLIST_NAME_MAX:
+        flash(f"Playlist name is too long ({PLAYLIST_NAME_MAX} characters max).", "error")
         return redirect(url_for("dashboard.playlists"))
 
     playlist = Playlist(

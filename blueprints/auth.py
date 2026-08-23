@@ -14,6 +14,7 @@ import re
 
 from flask import (
     Blueprint,
+    current_app,
     flash,
     redirect,
     render_template,
@@ -22,7 +23,7 @@ from flask import (
 )
 
 from extensions import db
-from models import User, generate_user_id
+from models import User, USERNAME_MAX, generate_user_id
 from services.auth import (
     clear_session_cookie,
     create_session_token,
@@ -67,8 +68,8 @@ def register_post():
     errors = []
     if not username or len(username) < 2:
         errors.append("Pick a name people will recognise you by (at least 2 characters).")
-    if len(username) > 64:
-        errors.append("That name is too long — 64 characters max.")
+    if len(username) > USERNAME_MAX:
+        errors.append(f"That name is too long — {USERNAME_MAX} characters max.")
     if not email or not _EMAIL_RE.match(email):
         errors.append("That email address doesn't look right.")
     if len(password) < 8:
@@ -123,6 +124,12 @@ def login_post():
         flash("Enter your email and password.", "error")
         return render_template("auth/login.html", email=email)
 
+    limiter = current_app.extensions["ffd_login_limiter"]
+    if not limiter.allow(f"{request.remote_addr}:{email}"):
+        log.info("login_rate_limited", email=email)
+        flash("Too many sign-in attempts — wait a few minutes and try again.", "error")
+        return render_template("auth/login.html", email=email)
+
     user = User.query.filter_by(email=email).first()
     if user is None or not _check_password(password, user.password_hash):
         log.info("login_failed", email=email)
@@ -137,7 +144,7 @@ def login_post():
     resp = redirect(dest)
     set_session_cookie(resp, token)
     log.info("user_logged_in", user_id=user.id)
-    flash(f"Welcome back, {user.display_name}.", "success")
+    flash(f"Welcome back, {user.name}.", "success")
     return resp
 
 

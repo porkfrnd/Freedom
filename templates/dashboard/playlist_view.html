@@ -51,9 +51,11 @@
       <div id="track-list" class="space-y-1">
         {% for track in playlist.tracks %}
           <div class="track-row track-clickable"
-               data-url="{{ track.url }}"
-               data-title="{{ track.title }}"
-               data-index="{{ loop.index0 }}">
+                data-url="{{ track.url }}"
+                data-title="{{ track.title }}"
+                data-duration="{{ track.duration_seconds or '' }}"
+                data-added-at="{{ track.added_at or '' }}"
+                data-index="{{ loop.index0 }}">
             <span class="track-num text-muted text-xs font-mono w-5 text-right">{{ loop.index }}</span>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium truncate">{{ track.title }}</p>
@@ -98,7 +100,7 @@
       <div class="card p-5 space-y-3">
         <h2 class="font-display font-bold text-sm">Playlist settings</h2>
         <div class="flex gap-2">
-          <input type="text" id="pl-name" value="{{ playlist.name }}" maxlength="80" class="input-field flex-1">
+          <input type="text" id="pl-name" value="{{ playlist.name }}" maxlength="60" class="input-field flex-1">
           <button type="button" id="save-name" class="btn-primary text-sm">Rename</button>
         </div>
         <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
@@ -233,6 +235,17 @@
     }
   }
 
+  function tracksFromDom() {
+    var tracks = [];
+    document.querySelectorAll("#track-list .track-row").forEach(function (row) {
+      var t = { title: row.dataset.title, url: row.dataset.url };
+      if (row.dataset.duration) t.duration_seconds = parseInt(row.dataset.duration, 10);
+      if (row.dataset.addedAt) t.added_at = row.dataset.addedAt;
+      tracks.push(t);
+    });
+    return tracks;
+  }
+
   var addForm = document.getElementById("add-track-form");
   if (addForm) {
     addForm.addEventListener("submit", function (e) {
@@ -243,22 +256,14 @@
         setStatus("Give it a title and a full link.", true);
         return;
       }
-      // Fetch current tracks, append, save
-      fetch("{{ url_for('api.list_playlists') }}?filter=mine")
-        .then(function (r) { return r.json(); })
-        .then(function () {
-          // We already know the tracks from the page — just PUT
-          var tracks = [];
-          document.querySelectorAll("#track-list .track-row").forEach(function (row) {
-            tracks.push({ title: row.dataset.title, url: row.dataset.url });
-          });
-          tracks.push({ title: title, url: url });
-          return fetch(API, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
-            body: JSON.stringify({ tracks: tracks })
-          });
-        })
+      // Carry the existing tracks (with durations) and append the new one
+      var tracks = tracksFromDom();
+      tracks.push({ title: title, url: url });
+      fetch(API, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
+        body: JSON.stringify({ tracks: tracks })
+      })
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function () {
           setStatus("Track added.");
@@ -275,10 +280,7 @@
     var btn = e.target.closest(".remove-track-btn");
     if (!btn) return;
     var idx = parseInt(btn.dataset.index, 10);
-    var tracks = [];
-    document.querySelectorAll("#track-list .track-row").forEach(function (row, i) {
-      if (i !== idx) tracks.push({ title: row.dataset.title, url: row.dataset.url });
-    });
+    var tracks = tracksFromDom().filter(function (_t, i) { return i !== idx; });
     fetch(API, {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },

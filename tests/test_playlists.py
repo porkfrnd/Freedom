@@ -91,6 +91,64 @@ def test_create_playlist_rejects_empty_name(app, client):
     assert resp.status_code == 400
 
 
+def test_create_playlist_rejects_overlong_name(app, client):
+    client = _authed_client(app, 111)
+    resp = client.post(
+        "/api/playlists",
+        json={"name": "N" * 61, "tracks": []},
+        headers={"X-CSRF-Token": _csrf(client)},
+    )
+    assert resp.status_code == 400
+    assert "60 characters max" in resp.get_json()["error"]["message"]
+
+
+def test_update_playlist_preserves_track_metadata(app, client):
+    client = _authed_client(app, 111)
+    playlist_id = _make_playlist(app, 111)
+
+    resp = client.put(
+        f"/api/playlists/{playlist_id}",
+        json={"tracks": [
+            {
+                "title": "A", "url": "https://youtu.be/abc",
+                "duration_seconds": 10, "added_at": "2026-01-01T00:00:00",
+            },
+            {"title": "B", "url": "https://youtu.be/xyz"},
+        ]},
+        headers={"X-CSRF-Token": _csrf(client)},
+    )
+    assert resp.status_code == 200
+    with app.app_context():
+        tracks = db.session.get(Playlist, playlist_id).tracks
+        assert len(tracks) == 2
+        assert tracks[0]["duration_seconds"] == 10
+        assert tracks[0]["added_at"] == "2026-01-01T00:00:00"
+        assert tracks[1]["added_at"]  # fresh timestamp assigned
+
+
+def test_save_reports_limit_reached_without_toggling(app, client):
+    from models import MAX_PLAYLIST_SAVES
+    playlist_id = _make_playlist(app, 222, name="Crowded")
+    client = _authed_client(app, 111)
+
+    with app.app_context():
+        p = db.session.get(Playlist, playlist_id)
+        p.saved_by = list(range(1000, 1000 + MAX_PLAYLIST_SAVES))
+        db.session.commit()
+
+    resp = client.post(
+        f"/api/playlists/{playlist_id}/save",
+        headers={"X-CSRF-Token": _csrf(client)},
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["saved"] is False
+    assert body["limit_reached"] is True
+
+    with app.app_context():
+        assert 111 not in db.session.get(Playlist, playlist_id).saved_by
+
+
 def test_update_playlist_owner_only(app, client):
     owner = _authed_client(app, 111)
     other = _authed_client(app, 222, username="other")

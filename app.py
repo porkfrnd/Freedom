@@ -72,10 +72,12 @@ def create_app(config_object=None) -> Flask:
     @app.before_request
     def ensure_csrf_cookie():
         existing = request.cookies.get(security.CSRF_COOKIE_NAME)
-        if existing:
+        if existing and security.csrf_cookie_valid(app.config["SECRET_KEY"], existing):
             g.csrf_token = existing
             g.csrf_was_missing = False
         else:
+            # Missing, tampered with, or expired — rotate so the user is
+            # never stuck failing CSRF checks with a stale cookie.
             g.csrf_token = security.generate_csrf_token(app.config["SECRET_KEY"])
             g.csrf_was_missing = True
 
@@ -109,15 +111,18 @@ def create_app(config_object=None) -> Flask:
         token = request.cookies.get(auth.SESSION_COOKIE_NAME)
         if not token:
             return response
+        carries_fresh = any(
+            h.startswith(auth.SESSION_COOKIE_NAME + "=")
+            for h in response.headers.getlist("Set-Cookie")
+        )
         claims = auth.decode_session_token(token)
         if claims is None:
-            carries_fresh = any(
-                h.startswith(auth.SESSION_COOKIE_NAME + "=")
-                for h in response.headers.getlist("Set-Cookie")
-            )
             if not carries_fresh:
                 auth.clear_session_cookie(response)
             return response
+        renewed = auth.renewed_session_token(token) if not carries_fresh else None
+        if renewed:
+            auth.set_session_cookie(response, renewed)
         return response
 
     # ── Template helpers ───────────────────────────────────────────────────
@@ -161,9 +166,12 @@ def create_app(config_object=None) -> Flask:
             from sqlalchemy import text
             db.session.execute(text("SELECT 1"))
         except Exception as exc:
+            db.session.rollback()
             log.error("healthz_db_failed", error=str(exc))
             checks["database"] = "error"
             status = "error"
+        finally:
+            db.session.close()
         return jsonify({"status": status, "checks": checks}), 200 if status == "ok" else 503
 
     # ── Rate limiters ──────────────────────────────────────────────────────
@@ -172,6 +180,21 @@ def create_app(config_object=None) -> Flask:
         limit=app.config["PLAYLIST_WRITE_LIMIT"],
         window_seconds=app.config["PLAYLIST_WRITE_WINDOW"],
     )
+    app.extensions["ffd_login_limiter"] = RateLimiter(
+        limit=app.config["LOGIN_RATE_LIMIT"],
+        window_seconds=app.config["LOGIN_RATE_WINDOW"],
+    )
+
+    # ── CLI: manual retention pruning (see models.prune_old_data) ──────────
+    @app.cli.command("prune-old-data")
+    def prune_old_data_command():
+        """Delete expired giveaways/submissions/events past their retention."""
+        from models import prune_old_data
+        with app.app_context():
+            pruned = prune_old_data(db.session)
+            for key, count in pruned.items():
+                log.info("pruned", what=key, rows=count)
+            print(pruned)
 
     return app
 

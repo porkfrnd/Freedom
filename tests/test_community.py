@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from extensions import db
-from models import Challenge, Giveaway, User
+from models import Announcement, Challenge, Giveaway, User
 
 from conftest import csrf_of
 
@@ -184,3 +184,67 @@ def test_admin_cannot_draw_running_giveaway(app, admin_client):
 
     with app.app_context():
         assert db.session.get(Giveaway, gid).status == "ACTIVE"
+
+
+def test_draw_with_no_entrants_keeps_giveaway_open(app, member_client):
+    from models import utcnow
+    from datetime import timedelta
+    with app.app_context():
+        g = Giveaway(
+            creator_id=222, prize="Empty one", status="ENDED",
+            deadline=utcnow() - timedelta(days=1),
+        )
+        db.session.add(g)
+        db.session.commit()
+        gid = g.id
+
+    from conftest import _create_user, make_token
+    with app.app_context():
+        _create_user(app, 222, "bob", is_admin=True)
+        token = make_token(app, 222, "bob", is_admin=True)
+    client = app.test_client()
+    client.set_cookie("ffd_session", token)
+    client.get("/giveaways")
+    csrf = csrf_of(client)
+    resp = client.post(f"/giveaways/{gid}/draw", data={"csrf_token": csrf}, follow_redirects=True)
+    assert b"No one entered" in resp.data
+
+    with app.app_context():
+        g = db.session.get(Giveaway, gid)
+        assert g.status == "ENDED"
+        assert g.winners == []
+
+
+def test_announcement_title_over_60_rejected(app, admin_client):
+    admin_client.get("/announcements")
+    csrf = csrf_of(admin_client)
+    resp = admin_client.post("/announcements", data={
+        "title": "T" * 61,
+        "content": "hello",
+        "csrf_token": csrf,
+    }, follow_redirects=True)
+    assert b"Title is too long" in resp.data
+    with app.app_context():
+        assert Announcement.query.count() == 0
+
+
+def test_challenge_title_over_60_rejected(app, admin_client):
+    admin_client.get("/challenges")
+    csrf = csrf_of(admin_client)
+    resp = admin_client.post("/challenges", data={
+        "title": "C" * 61,
+        "description": "desc",
+        "csrf_token": csrf,
+    }, follow_redirects=True)
+    assert b"Title is too long" in resp.data
+
+
+def test_giveaway_prize_over_60_rejected(app, admin_client):
+    admin_client.get("/giveaways")
+    csrf = csrf_of(admin_client)
+    resp = admin_client.post("/giveaways", data={
+        "prize": "P" * 61,
+        "num_winners": "1",
+        "csrf_token": csrf,
+    }, follow_redirects=True)
+    assert b"Prize name is too long" in resp.data

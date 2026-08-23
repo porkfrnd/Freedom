@@ -25,7 +25,7 @@ A community platform for dancers — challenges, giveaways, playlists, and the p
 ## Tech stack
 
 - **Backend:** Flask + SQLAlchemy + Jinja2
-- **Auth:** Email/password with bcrypt + JWT session cookies
+- **Auth:** Email/password with PBKDF2 (werkzeug) + JWT session cookies
 - **Database:** SQLite (dev) / PostgreSQL (production via Render)
 - **Frontend:** Tailwind CSS (CDN) + vanilla JS — no framework
 - **Fonts:** Space Grotesk (display) + Inter (body)
@@ -99,6 +99,13 @@ Opens at `http://localhost:5000`.
 
 ```bash
 FFD_SKIP_APP_CREATION=1 FLASK_ENV=development python -m pytest tests/ -q
+```
+
+## Maintenance
+
+```bash
+# Delete expired giveaways/submissions/events past their retention window
+flask prune-old-data
 ```
 
 ## Environment variables

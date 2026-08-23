@@ -56,7 +56,7 @@
 </div>
 
 {# ── New playlist modal ─────────────────────────────────────────────────── #}
-<div id="new-playlist" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New playlist">
+<div id="new-playlist" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New playlist">
   <div class="absolute inset-0 bg-black/60" data-modal-close="new-playlist"></div>
   <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-md p-6 shadow-2xl">
     <h2 class="font-display font-bold text-lg mb-4">Create a playlist</h2>
@@ -64,7 +64,7 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
         <label for="name" class="block text-sm font-medium mb-1.5">Name</label>
-        <input type="text" id="name" name="name" required maxlength="80"
+        <input type="text" id="name" name="name" required maxlength="60"
                placeholder="e.g. Warm-up Grooves" class="input-field w-full">
       </div>
       <label class="flex items-center gap-3 text-sm cursor-pointer select-none">

@@ -51,12 +51,16 @@
                   <button type="submit" class="btn-ghost text-xs">Remove Teacher</button>
                 </form>
               {% endif %}
-              <form method="POST" action="{{ url_for('dashboard.toggle_admin', user_id=found_user.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn-ghost text-xs">Make Admin</button>
-              </form>
+              {% if found_user.id != my_user_id %}
+                <form method="POST" action="{{ url_for('dashboard.toggle_admin', user_id=found_user.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-ghost text-xs">Make Admin</button>
+                </form>
+              {% else %}
+                <span class="text-xs text-muted">You</span>
+              {% endif %}
             {% else %}
-              <span class="text-xs text-muted">You can't change your own admin status.</span>
+              <span class="text-xs text-muted">{% if found_user.id == my_user_id %}You can't change your own admin status.{% else %}Admin{% endif %}</span>
             {% endif %}
           </div>
         </div>
@@ -94,24 +98,22 @@
                   title="Click to copy UID">
               {{ format_uid(u.id) }}
             </span>
-            {% if not u.is_admin %}
-              {% if not u.is_teacher %}
-                <form method="POST" action="{{ url_for('dashboard.promote_teacher', user_id=u.id) }}" class="inline">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="text-xs text-violet hover:underline">+ Teacher</button>
-                </form>
-              {% else %}
-                <form method="POST" action="{{ url_for('dashboard.demote_teacher', user_id=u.id) }}" class="inline">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="text-xs text-muted hover:underline">− Teacher</button>
-                </form>
-              {% endif %}
-              {% if u.id != my_user_id %}
-                <form method="POST" action="{{ url_for('dashboard.toggle_admin', user_id=u.id) }}" class="inline">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="text-xs text-muted hover:underline">+ Admin</button>
-                </form>
-              {% endif %}
+            {% if not u.is_admin and not u.is_teacher %}
+              <form method="POST" action="{{ url_for('dashboard.promote_teacher', user_id=u.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-xs text-violet hover:underline">+ Teacher</button>
+              </form>
+            {% elif u.is_teacher %}
+              <form method="POST" action="{{ url_for('dashboard.demote_teacher', user_id=u.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-xs text-muted hover:underline">− Teacher</button>
+              </form>
+            {% endif %}
+            {% if u.id != my_user_id %}
+              <form method="POST" action="{{ url_for('dashboard.toggle_admin', user_id=u.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-xs text-muted hover:underline">{% if u.is_admin %}− Admin{% else %}+ Admin{% endif %}</button>
+              </form>
             {% endif %}
           </div>
         </div>

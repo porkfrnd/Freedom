@@ -2,7 +2,7 @@
 {% block title %}{% block panel_title %}Dashboard{% endblock %} · Freedom for Dance{% endblock %}
 
 {% block body %}
-<div class="min-h-screen lg:flex" data-theme="{{ 'dark' if not session.get('theme') else session.get('theme') }}">
+<div class="min-h-screen lg:flex" data-theme="dark">
   {# ── Side nav (desktop) ──────────────────────────────────────────────── #}
   <nav class="hidden lg:flex flex-col w-60 shrink-0 border-r border-white/7 bg-[rgba(11,10,20,0.4)] backdrop-blur-xl px-4 py-6 sticky top-0 h-screen" aria-label="Dashboard">
     <a href="{{ url_for('dashboard.home') }}" class="block px-2 mb-8" aria-label="Home">

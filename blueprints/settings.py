@@ -26,6 +26,7 @@ from services.auth import (
 )
 from utils.decorators import require_login
 from utils.logging import get_logger
+from utils.validate import URL_RE
 
 log = get_logger("blueprints.settings")
 
@@ -140,8 +141,12 @@ def change_email():
         return redirect(url_for("settings.settings"))
     g.user.email = new_email
     db.session.commit()
+    # Re-issue the session so claims carry the new email immediately.
+    token = create_session_token(g.user.id, g.user.username, g.user.email, g.user.is_admin, g.user.is_teacher)
+    resp = redirect(url_for("settings.settings"))
+    set_session_cookie(resp, token)
     flash(f"Email changed to {new_email}.", "success")
-    return redirect(url_for("settings.settings"))
+    return resp
 
 
 @bp.post("/settings/username")
@@ -242,24 +247,6 @@ def delete_account():
     return resp
 
 
-# ── Playlist saves ─────────────────────────────────────────────────────
-
-@bp.post("/playlists/<playlist_id>/save")
-@require_login
-def toggle_save_playlist(playlist_id):
-    playlist = db.session.get(Playlist, playlist_id)
-    if playlist is None:
-        flash("Playlist not found.", "error")
-        return redirect(url_for("dashboard.playlists"))
-    saved = playlist.toggle_save(g.user.id)
-    db.session.commit()
-    if saved:
-        flash("Playlist saved.", "success")
-    else:
-        flash("Playlist unsaved.", "info")
-    return redirect(url_for("dashboard.playlist_view", playlist_id=playlist_id))
-
-
 # ── Challenge submissions ──────────────────────────────────────────────
 
 @bp.get("/challenges/<int:challenge_id>")
@@ -307,8 +294,8 @@ def submit_to_challenge(challenge_id):
         return redirect(url_for("settings.challenge_detail", challenge_id=challenge_id))
     url = (request.form.get("url") or "").strip()
     note = (request.form.get("note") or "").strip()[:150]
-    if not url or not url.startswith("http"):
-        flash("Give us a link (YouTube, Instagram, etc.).", "error")
+    if not url or not URL_RE.match(url):
+        flash("Give us a full link starting with http(s):// (YouTube, Instagram, etc.).", "error")
         return redirect(url_for("settings.challenge_detail", challenge_id=challenge_id))
     sub = Submission(
         challenge_id=challenge_id,
@@ -472,9 +459,9 @@ def leaderboard():
         .join(Playlist, Playlist.creator_id == User.id)
         .group_by(User.id).order_by(func.count(Playlist.id).desc()).limit(10).all()
     )
-    # Giveaways entered (across all giveaways)
-    # This is expensive on raw data — approximate from giveaway entrant counts
-    giveaway_winners = (
+    # Giveaways created (entrant-level history lives in JSONB blobs —
+    # counting rows per creator is the cheap approximation we display)
+    giveaway_leaders = (
         db.session.query(User, func.count(Giveaway.id).label("count"))
         .join(Giveaway, Giveaway.creator_id == User.id)
         .group_by(User.id).order_by(func.count(Giveaway.id).desc()).limit(10).all()
@@ -483,7 +470,7 @@ def leaderboard():
         "dashboard/leaderboard.html",
         challenge_leaders=challenge_leaders,
         playlist_leaders=playlist_leaders,
-        giveaway_leaders=giveaway_winners,
+        giveaway_leaders=giveaway_leaders,
     )
 
 

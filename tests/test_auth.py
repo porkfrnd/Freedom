@@ -71,6 +71,56 @@ def test_register_rejects_mismatched_passwords(app, client):
     assert b"don" in resp.data  # flash msg has JSON-encoded apostrophe
 
 
+def test_register_rejects_overlong_username(app, client):
+    csrf = _get_csrf(client)
+    resp = client.post("/auth/register", data={
+        "username": "u" * 33, "email": "longname@test.com",
+        "password": "password123", "confirm_password": "password123",
+        "csrf_token": csrf,
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"too long" in resp.data
+    with app.app_context():
+        assert User.query.filter_by(email="longname@test.com").first() is None
+
+
+def test_invalid_csrf_cookie_is_rotated(client):
+    client.set_cookie("ffd_csrf", "garbage-not-signed")
+    resp = client.get("/auth/login")
+    assert resp.status_code == 200
+    fresh = csrf_of(client).encode()
+    assert fresh and fresh != b"garbage-not-signed"
+
+
+def test_login_rate_limited(app, client, monkeypatch):
+    from werkzeug.security import generate_password_hash
+    with app.app_context():
+        db.session.add(User(
+            id=444, username="rl", email="rl@test.com",
+            password_hash=generate_password_hash("password123"),
+        ))
+        db.session.commit()
+
+    client.get("/auth/login")  # seed CSRF cookie
+    csrf = csrf_of(client)
+    limiter = app.extensions["ffd_login_limiter"]
+    limiter.reset()
+    limiter.limit = 2
+
+    for _ in range(2):
+        resp = client.post("/auth/login", data={
+            "email": "rl@test.com", "password": "wrongpass",
+            "csrf_token": csrf,
+        })
+        assert b"Wrong email or password" in resp.data
+
+    resp = client.post("/auth/login", data={
+        "email": "rl@test.com", "password": "wrongpass",
+        "csrf_token": csrf,
+    })
+    assert b"Too many sign-in attempts" in resp.data
+
+
 def test_login_works(app, client):
     csrf = _get_csrf(client)
     _register(client, "alice", "alice@test.com", csrf)

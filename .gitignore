@@ -46,3 +46,8 @@ Thumbs.db
 
 # Render / deploy artifacts
 render-debug.log
+
+# AI-tooling worktrees / local state (never push these)
+/.claude/
+/demo.env
+/demo*.db

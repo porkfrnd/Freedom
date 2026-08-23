@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from tests.conftest import _create_user, make_token, csrf_of
+from conftest import _create_user, make_token, csrf_of
 
 
 def _seed_csrf(client):

@@ -86,7 +86,7 @@
 
 {# ── New giveaway modal (admin) ────────────────────────────────────────── #}
 {% if can_post %}
-<div id="new-giveaway" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New giveaway">
+<div id="new-giveaway" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New giveaway">
   <div class="absolute inset-0 bg-black/60" data-modal-close="new-giveaway"></div>
   <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-lg p-6 shadow-2xl">
     <h2 class="font-display font-bold text-lg mb-4">Post a giveaway</h2>
@@ -94,11 +94,11 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
         <label for="prize" class="block text-sm font-medium mb-1.5">Prize</label>
-        <input type="text" id="prize" name="prize" required maxlength="120" placeholder="e.g. Free entry to the next showcase" class="input-field w-full">
+        <input type="text" id="prize" name="prize" required maxlength="60" placeholder="e.g. Free entry to the next showcase" class="input-field w-full">
       </div>
       <div>
         <label for="description" class="block text-sm font-medium mb-1.5">Details <span class="text-muted font-normal">(optional)</span></label>
-        <textarea id="description" name="description" rows="3" placeholder="How to enter, what it's for…" class="input-field w-full resize-y"></textarea>
+        <textarea id="description" name="description" rows="3" maxlength="300" placeholder="How to enter, what it's for…" class="input-field w-full resize-y"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>

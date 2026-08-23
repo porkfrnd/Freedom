@@ -64,6 +64,33 @@ def claims_from_request() -> dict | None:
     return decode_session_token(token)
 
 
+def renewed_session_token(token: str, refresh_fraction: float = 0.25) -> str | None:
+    """Re-issue a token when it has burned most of its lifetime.
+
+    Returns a fresh token once less than ``refresh_fraction`` of the TTL
+    remains (silent sliding expiry), or ``None`` when no refresh is due
+    or the input token is invalid/expired.
+    """
+    claims = decode_session_token(token)
+    if not claims:
+        return None
+    now = int(time.time())
+    exp = int(claims.get("exp") or 0)
+    iat = int(claims.get("iat") or exp)
+    total = max(exp - iat, 0)
+    if total <= 0:
+        return None
+    if (exp - now) > total * refresh_fraction:
+        return None
+    return create_session_token(
+        claims["user_id"],
+        claims["username"],
+        claims["email"],
+        claims["is_admin"],
+        claims["is_teacher"],
+    )
+
+
 def set_session_cookie(response, token: str) -> None:
     """Attach the session JWT cookie to a response."""
     response.set_cookie(

@@ -88,3 +88,5 @@ class Config:
     # Rate limits.
     PLAYLIST_WRITE_LIMIT = 30  # writes per hour, per user
     PLAYLIST_WRITE_WINDOW = 3600
+    LOGIN_RATE_LIMIT = _int("LOGIN_RATE_LIMIT", 10)  # attempts per window, per IP+email
+    LOGIN_RATE_WINDOW = _int("LOGIN_RATE_WINDOW", 300)

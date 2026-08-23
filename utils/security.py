@@ -49,5 +49,21 @@ def verify_csrf_token(secret_key: str, cookie_value: str | None, submitted: str 
         return False
 
 
+def csrf_cookie_valid(secret_key: str, cookie_value: str | None) -> bool:
+    """True when the cookie itself still carries a fresh, valid signature.
+
+    Used to decide whether an existing ``ffd_csrf`` cookie should be kept
+    or rotated — an expired one must never be left in place, or the user
+    gets stuck failing CSRF checks until they clear cookies manually.
+    """
+    if not cookie_value:
+        return False
+    try:
+        _serializer(secret_key).loads(cookie_value, max_age=CSRF_MAX_AGE)
+        return True
+    except BadSignature:
+        return False
+
+
 def is_safe_method(method: str) -> bool:
     return method.upper() in _SAFE_METHODS

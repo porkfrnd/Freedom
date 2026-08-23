@@ -62,7 +62,47 @@ SAMPLE_TRACKS = [
 ]
 
 
+def ensure_demo_accounts() -> None:
+    """Additive mode: create any missing demo accounts, keep existing data."""
+    from werkzeug.security import generate_password_hash
+
+    with app.app_context():
+        created = []
+
+        def _ensure(email: str, password: str, username: str, **flags) -> None:
+            if User.query.filter_by(email=email).first() is not None:
+                return
+            db.session.add(User(
+                id=generate_user_id(),
+                email=email,
+                username=username,
+                password_hash=generate_password_hash(password),
+                **flags,
+            ))
+            created.append(email)
+
+        _ensure(DEMO_ACCOUNT["email"], DEMO_ACCOUNT["password"], DEMO_ACCOUNT["username"], is_admin=True)
+        _ensure(TEACHER_ACCOUNT["email"], TEACHER_ACCOUNT["password"], TEACHER_ACCOUNT["username"], is_teacher=True)
+        for email, name in MEMBER_ACCOUNTS:
+            _ensure(email, "password123", name)
+
+        if not created:
+            print("Demo accounts already present — nothing to do.")
+            return
+        db.session.commit()
+        print("Created demo account(s):")
+        for email in created:
+            print(f"  - {email}")
+        print(f"  Demo admin password:  {DEMO_ACCOUNT['password']}")
+        print(f"  Teacher password:     {TEACHER_ACCOUNT['password']}")
+        print("  Member password:      password123")
+
+
 def main() -> None:
+    if "--ensure" in sys.argv:
+        ensure_demo_accounts()
+        return
+
     with app.app_context():
         if db.session.query(User).count() > 0:
             print("Database already has users — nothing to seed.")

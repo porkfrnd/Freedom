@@ -46,7 +46,7 @@
 
 {# ── New announcement modal (admin) ────────────────────────────────────── #}
 {% if can_post %}
-<div id="new-announcement" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New announcement">
+<div id="new-announcement" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New announcement">
   <div class="absolute inset-0 bg-black/60" data-modal-close="new-announcement"></div>
   <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-lg p-6 shadow-2xl">
     <h2 class="font-display font-bold text-lg mb-4">Post an announcement</h2>
@@ -54,11 +54,11 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
         <label for="title" class="block text-sm font-medium mb-1.5">Title</label>
-        <input type="text" id="title" name="title" required maxlength="120" placeholder="e.g. New weekly session on Fridays" class="input-field w-full">
+        <input type="text" id="title" name="title" required maxlength="60" placeholder="e.g. New weekly session on Fridays" class="input-field w-full">
       </div>
       <div>
         <label for="content" class="block text-sm font-medium mb-1.5">What's the news?</label>
-        <textarea id="content" name="content" required rows="4" placeholder="Tell the community what's changing, what's coming, what to prepare for…" class="input-field w-full resize-y"></textarea>
+        <textarea id="content" name="content" required rows="4" maxlength="500" placeholder="Tell the community what's changing, what's coming, what to prepare for…" class="input-field w-full resize-y"></textarea>
       </div>
       <div>
         <label for="category" class="block text-sm font-medium mb-1.5">Category</label>

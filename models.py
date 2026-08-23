@@ -53,6 +53,25 @@ MAX_GIVEAWAY_ENTRANTS = 500
 MAX_PLAYLIST_TRACKS = 50
 MAX_PLAYLIST_SAVES = 1000  # per playlist
 
+# Column-length caps — keep in sync with the mapped_column String sizes below.
+# Server-side validation MUST use these so inserts never overflow on Postgres.
+USERNAME_MAX = 32
+DISPLAY_NAME_MAX = 32
+BIO_MAX = 150
+SOCIAL_MAX = 32
+PLAYLIST_NAME_MAX = 60
+ANNOUNCEMENT_TITLE_MAX = 60
+ANNOUNCEMENT_CONTENT_MAX = 500
+CHALLENGE_TITLE_MAX = 60
+CHALLENGE_DESCRIPTION_MAX = 500
+GIVEAWAY_PRIZE_MAX = 60
+GIVEAWAY_DESCRIPTION_MAX = 300
+EVENT_TITLE_MAX = 60
+EVENT_DESCRIPTION_MAX = 300
+EVENT_LOCATION_MAX = 60
+SUBMISSION_URL_MAX = 200
+SUBMISSION_NOTE_MAX = 150
+
 AVATAR_COLORS = (
     ("violet", "Violet", "#7B2FF7"),
     ("magenta", "Magenta", "#FF2E9A"),
@@ -130,7 +149,7 @@ class User(db.Model):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
-    username: Mapped[str] = mapped_column(String(32), nullable=False)
+    username: Mapped[str] = mapped_column(String(USERNAME_MAX), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(80), nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_teacher: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
