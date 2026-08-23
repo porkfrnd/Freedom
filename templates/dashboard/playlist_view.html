@@ -4,8 +4,7 @@
 
 {% block panel %}
 <div class="max-w-3xl mx-auto">
-
-  {# ── Header ────────────────────────────────────────────────────────── #}    <div class="flex items-center gap-4 mb-6">
+  <div class="flex items-center gap-4 mb-6">
     <a href="{{ url_for('dashboard.playlists') }}" class="btn-ghost text-sm">← Back</a>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-3">
@@ -19,23 +18,21 @@
         · {{ playlist.track_count }} track{{ 's' if playlist.track_count != 1 }}
       </p>
     </div>
-    {# Save button (only for non-owners on public playlists) #}
     {% if not is_owner and playlist.is_public %}
       <button type="button" id="save-btn" class="btn-ghost text-sm flex items-center gap-1.5" data-playlist-id="{{ playlist.id }}">
-        <span id="save-icon">{% if playlist.has_saved(g.user.id) %}♥{% else %}♡{% endif %}</span>
+        <span id="save-icon">{% if playlist.has_saved(g.user.id) %}<i data-lucide="heart" class="w-4 h-4 fill-current"></i>{% else %}<i data-lucide="heart" class="w-4 h-4"></i>{% endif %}</span>
         <span id="save-count">{{ playlist.save_count }}</span>
       </button>
     {% endif %}
     {% if is_owner %}
-      <button type="button" id="toggle-edit" class="btn-ghost text-sm">✏️ Edit</button>
+      <button type="button" id="toggle-edit" class="btn-ghost text-sm"><i data-lucide="pencil" class="w-4 h-4 inline"></i> Edit</button>
     {% endif %}
   </div>
 
-  {# ── YouTube Player ──────────────────────────────────────────────────── #}
   <div id="player-wrap" class="mb-6 hidden">
     <div class="relative w-full" style="padding-top: 56.25%;">
       <iframe id="yt-player"
-              class="absolute inset-0 w-full h-full rounded-card"
+              class="absolute inset-0 w-full h-full rounded"
               src=""
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowfullscreen
@@ -45,7 +42,6 @@
     <p id="now-playing" class="text-sm text-muted mt-2 text-center"></p>
   </div>
 
-  {# ── Track list ──────────────────────────────────────────────────────── #}
   <div class="card p-4 mb-6">
     {% if playlist.tracks %}
       <div id="track-list" class="space-y-1">
@@ -65,7 +61,9 @@
               <span class="text-xs text-muted font-mono shrink-0">{{ (track.duration_seconds // 60) }}:{{ '%02d' | format(track.duration_seconds % 60) }}</span>
             {% endif %}
             {% if is_owner %}
-              <button type="button" class="remove-track-btn text-danger hover:opacity-70 transition-opacity text-xs shrink-0 hidden edit-control" data-index="{{ loop.index0 }}" aria-label="Remove {{ track.title }}">✕</button>
+              <button type="button" class="remove-track-btn text-danger hover:opacity-70 transition-opacity text-xs shrink-0 hidden edit-control" data-index="{{ loop.index0 }}" aria-label="Remove {{ track.title }}">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
             {% endif %}
           </div>
         {% endfor %}
@@ -78,11 +76,8 @@
     {% endif %}
   </div>
 
-  {# ── Owner controls ──────────────────────────────────────────────────── #}
   {% if is_owner %}
     <div id="edit-panel" class="hidden space-y-4 mb-6">
-
-      {# Add track #}
       <div class="card p-5">
         <h2 class="font-display font-bold text-sm mb-3">Add a track</h2>
         <form id="add-track-form" class="space-y-3">
@@ -96,7 +91,6 @@
         <p id="add-status" class="text-xs text-muted mt-2" aria-live="polite"></p>
       </div>
 
-      {# Rename + visibility #}
       <div class="card p-5 space-y-3">
         <h2 class="font-display font-bold text-sm">Playlist settings</h2>
         <div class="flex gap-2">
@@ -104,14 +98,13 @@
           <button type="button" id="save-name" class="btn-primary text-sm">Rename</button>
         </div>
         <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
-          <input type="checkbox" id="pl-public" {% if playlist.is_public %}checked{% endif %} class="accent-[--violet] w-4 h-4">
+          <input type="checkbox" id="pl-public" {% if playlist.is_public %}checked{% endif %} class="accent-[--accent] w-4 h-4">
           <span>Public — anyone can find this playlist</span>
         </label>
         <p id="save-status" class="text-xs text-muted" aria-live="polite"></p>
       </div>
     </div>
   {% endif %}
-
 </div>
 {% endblock %}
 
@@ -130,7 +123,6 @@
     return m ? decodeURIComponent(m[1]) : "";
   }
 
-  /* ── YouTube ID extraction ─────────────────────────────────────────── */
   function extractYouTubeId(url) {
     if (!url) return null;
     var patterns = [
@@ -138,7 +130,7 @@
       /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
       /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
       /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
-      /^([a-zA-Z0-9_-]{11})$/  // bare video ID
+      /^([a-zA-Z0-9_-]{11})$/
     ];
     for (var i = 0; i < patterns.length; i++) {
       var m = url.match(patterns[i]);
@@ -147,11 +139,9 @@
     return null;
   }
 
-  /* ── Play track ────────────────────────────────────────────────────── */
   function playTrack(url, title) {
     var videoId = extractYouTubeId(url);
     if (!videoId) {
-      // Not YouTube — open in new tab as fallback
       window.open(url, "_blank", "noopener");
       return;
     }
@@ -159,32 +149,25 @@
     playerWrap.classList.remove("hidden");
     nowPlaying.textContent = "Now playing: " + title;
 
-    // Highlight active track
     document.querySelectorAll(".track-row").forEach(function (row) {
       row.classList.remove("track-active");
     });
     var active = document.querySelector('[data-url="' + CSS.escape(url) + '"]');
     if (active) active.classList.add("track-active");
 
-    // Scroll player into view
     playerWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  /* ── Click a track to play ─────────────────────────────────────────── */
   document.getElementById("track-list").addEventListener("click", function (e) {
-    // Ignore remove button clicks
     if (e.target.closest(".remove-track-btn")) return;
-
     var row = e.target.closest(".track-clickable");
     if (!row) return;
     playTrack(row.dataset.url, row.dataset.title);
   });
 
-  /* ── Save / unsave playlist ─────────────────────────────────────── */
   var saveBtn = document.getElementById("save-btn");
   if (saveBtn) {
     saveBtn.addEventListener("click", function () {
-      var playlistId = saveBtn.dataset.playlistId;
       var saveApi = "{{ url_for('api.toggle_save', playlist_id=playlist.id) }}";
       fetch(saveApi, {
         method: "POST",
@@ -194,37 +177,36 @@
         .then(function (data) {
           var icon = document.getElementById("save-icon");
           var count = document.getElementById("save-count");
-          icon.textContent = data.saved ? "♥" : "♡";
+          icon.innerHTML = data.saved ? '<i data-lucide="heart" class="w-4 h-4 fill-current"></i>' : '<i data-lucide="heart" class="w-4 h-4"></i>';
           count.textContent = data.save_count;
           if (data.saved) {
-            saveBtn.classList.add("text-rose-500");
+            saveBtn.classList.add("text-danger");
             saveBtn.classList.remove("text-muted");
           } else {
-            saveBtn.classList.remove("text-rose-500");
+            saveBtn.classList.remove("text-danger");
             saveBtn.classList.add("text-muted");
           }
+          lucide.createIcons();
         })
-        .catch(function () { /* silent — no flash on API error */ });
+        .catch(function () { });
     });
   }
 
   {% if is_owner %}
-  /* ── Toggle edit panel ──────────────────────────────────────────────── */
   var editPanel = document.getElementById("edit-panel");
   var toggleBtn = document.getElementById("toggle-edit");
   if (toggleBtn && editPanel) {
     toggleBtn.addEventListener("click", function () {
       var showing = !editPanel.classList.contains("hidden");
       editPanel.classList.toggle("hidden");
-      toggleBtn.textContent = showing ? "✏️ Edit" : "✕ Done";
-      // Show/hide remove buttons
+      toggleBtn.innerHTML = showing ? '<i data-lucide="pencil" class="w-4 h-4 inline"></i> Edit' : '<i data-lucide="x" class="w-4 h-4 inline"></i> Done';
+      lucide.createIcons();
       document.querySelectorAll(".edit-control").forEach(function (el) {
         el.classList.toggle("hidden");
       });
     });
   }
 
-  /* ── Add track ──────────────────────────────────────────────────────── */
   var API = "{{ url_for('api.update_playlist', playlist_id=playlist.id) }}";
   var statusEl = document.getElementById("add-status");
 
@@ -256,7 +238,6 @@
         setStatus("Give it a title and a full link.", true);
         return;
       }
-      // Carry the existing tracks (with durations) and append the new one
       var tracks = tracksFromDom();
       tracks.push({ title: title, url: url });
       fetch(API, {
@@ -275,7 +256,6 @@
     });
   }
 
-  /* ── Remove track ───────────────────────────────────────────────────── */
   document.getElementById("track-list").addEventListener("click", function (e) {
     var btn = e.target.closest(".remove-track-btn");
     if (!btn) return;
@@ -291,7 +271,6 @@
       .catch(function () { setStatus("Couldn't remove — try again.", true); });
   });
 
-  /* ── Rename ─────────────────────────────────────────────────────────── */
   var saveName = document.getElementById("save-name");
   if (saveName) {
     saveName.addEventListener("click", function () {
@@ -311,7 +290,6 @@
     });
   }
 
-  /* ── Toggle visibility ──────────────────────────────────────────────── */
   var plPublic = document.getElementById("pl-public");
   if (plPublic) {
     plPublic.addEventListener("change", function () {
@@ -332,21 +310,4 @@
 
 })();
 </script>
-<style>
-  /* Active track highlight */
-  .track-row.track-active {
-    border-color: var(--violet) !important;
-    background: rgba(123, 47, 247, 0.08) !important;
-  }
-  .track-row.track-active .track-num {
-    color: var(--violet);
-  }
-  /* Clickable track cursor */
-  .track-clickable {
-    cursor: pointer;
-  }
-  .track-clickable:hover {
-    background: rgba(255, 255, 255, 0.04);
-  }
-</style>
 {% endblock %}

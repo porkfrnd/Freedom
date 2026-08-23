@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 from datetime import timedelta
+from functools import lru_cache
 
 import jwt
 from flask import current_app, request
@@ -41,8 +42,15 @@ def create_session_token(
     return jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
 
 
+@lru_cache(maxsize=128)
 def decode_session_token(token: str | None) -> dict | None:
-    """Decode and verify a token; None when invalid or expired."""
+    """Decode and verify a token; None when invalid or expired.
+
+    Cached to avoid redundant HMAC verification on every response — the
+    refresh_session_cookie after_request handler calls this on every HTTP
+    response, so caching eliminates repeated decode overhead for unchanged
+    session tokens.
+    """
     if not token:
         return None
     try:

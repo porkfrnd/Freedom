@@ -22,7 +22,7 @@
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {% for p in playlists %}
         <a href="{{ url_for('dashboard.playlist_view', playlist_id=p.id) }}"
-           class="card p-5 block hover:border-violet/30 transition-colors">
+           class="card p-5 block hover:border-accent-border transition-colors">
           <div class="flex items-start justify-between gap-3 mb-3">
             <div>
               <p class="font-display font-bold text-base leading-tight">{{ p.name }}</p>
@@ -35,7 +35,7 @@
           <div class="flex items-center gap-4 text-xs text-muted">
             <span>{{ p.track_count }} track{{ 's' if p.track_count != 1 }}</span>
             {% if p.save_count > 0 %}
-              <span>♥ {{ p.save_count }}</span>
+              <span><i data-lucide="heart" class="w-3 h-3 inline"></i> {{ p.save_count }}</span>
             {% endif %}
             <span>Updated {{ p.updated_at.strftime('%b %d') }}</span>
           </div>
@@ -55,20 +55,19 @@
   {% endif %}
 </div>
 
-{# ── New playlist modal ─────────────────────────────────────────────────── #}
 <div id="new-playlist" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New playlist">
   <div class="absolute inset-0 bg-black/60" data-modal-close="new-playlist"></div>
-  <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-md p-6 shadow-2xl">
+  <div class="relative bg-surface border border-border rounded-md w-full max-w-md p-6">
     <h2 class="font-display font-bold text-lg mb-4">Create a playlist</h2>
     <form method="POST" action="{{ url_for('dashboard.create_playlist') }}" class="space-y-4">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
-        <label for="name" class="block text-sm font-medium mb-1.5">Name</label>
+        <label for="name">Name</label>
         <input type="text" id="name" name="name" required maxlength="60"
                placeholder="e.g. Warm-up Grooves" class="input-field w-full">
       </div>
       <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
-        <input type="checkbox" name="is_public" checked class="accent-[--violet] w-4 h-4">
+        <input type="checkbox" name="is_public" checked class="accent-[--accent] w-4 h-4">
         <span>
           Public — anyone can find it
           <span class="block text-xs text-muted">Leave off to keep it just for you.</span>

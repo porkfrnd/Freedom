@@ -7,27 +7,27 @@
   <meta name="description" content="A community for dancers who move to their own rhythm. Playlists, events, and the people who make the floor come alive.">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
 
-  {# Typography #}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  {# Tailwind for layout utilities #}
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            ink: "var(--ink)",
+            bg: "var(--bg)",
             surface: "var(--surface)",
-            violet: "var(--violet)",
-            magenta: "var(--magenta)",
-            cyan: "var(--cyan)",
-            paper: "var(--paper)",
-            muted: "var(--muted)",
+            "surface-2": "var(--surface-2)",
+            "surface-3": "var(--surface-3)",
+            border: "var(--border)",
+            "border-2": "var(--border-2)",
+            paper: "var(--text)",
+            muted: "var(--text-2)",
+            accent: "var(--accent)",
             success: "var(--success)",
-            warning: "#F59E0B",
+            warning: "var(--warning)",
             danger: "var(--danger)",
           },
           fontFamily: {
@@ -35,8 +35,7 @@
             body: "var(--font-body)",
           },
           borderRadius: {
-            card: "14px",
-            pill: "999px",
+            card: "6px",
           },
           maxWidth: { shell: "1200px" },
         },
@@ -45,14 +44,14 @@
   </script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   {% block head %}{% endblock %}
 </head>
-<body class="text-paper font-body antialiased" style="background: var(--_bg, #0B0A14)">
-  <a class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-violet focus:text-paper focus:px-4 focus:py-2 focus:rounded-card" href="#main">Skip to content</a>
+<body class="text-paper font-body antialiased">
+  <a class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-accent focus:text-white focus:px-4 focus:py-2 focus:rounded" href="#main">Skip to content</a>
 
   {% block body %}{% endblock %}
 
-  {# Toasts #}
   <div id="toast-region" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm" aria-live="polite" aria-atomic="true"></div>
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -61,17 +60,7 @@
   {% endwith %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>lucide.createIcons();</script>
   {% block scripts %}{% endblock %}
-
-  <style>
-    /* Landing page light mode */
-    .theme-light header { background: rgba(255,255,255,0.95) !important; backdrop-filter: blur(12px); border-color: #E7E5E4 !important; }
-    .theme-light footer { border-color: #E7E5E4 !important; }
-    .theme-light footer .border-t { border-color: #E7E5E4 !important; }
-    .theme-light .card { background: #FFFFFF; border-color: #E7E5E4; }
-    .theme-light .card:hover { border-color: #D6D3D1; }
-    .theme-light blockquote p { color: #1C1917 !important; }
-    .theme-light .text-paper\/90 { color: #1C1917 !important; }
-  </style>
 </body>
 </html>

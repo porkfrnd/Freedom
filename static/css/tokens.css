@@ -1,41 +1,76 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   Freedom for Dance — design tokens
-   Deep, moody palette with stage-light accents. The dancer silhouette
-   from the logo is the visual anchor — we don't need gradients on
-   every surface to feel alive.
+   Freedom for Dance — Pure Matte Design System
+   Dark mode. Flat surfaces. 1px borders. No gloss, no glow, no glass.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
   /* ── Color ─────────────────────────────────────────────────────────────── */
-  --ink: #0B0A14;
-  --surface: rgba(21, 19, 33, 0.65);
-  --violet: #7B2FF7;
-  --magenta: #FF2E9A;
-  --cyan: #34E4EA;
-  --paper: #F0EDF6;
-  --muted: #8B85A0;
-  --success: #10B981;
-  --danger: #F43F5E;
-  --_bg: #0B0A14;
+  --bg:        #111111;
+  --surface:   #1A1A1A;
+  --surface-2: #222222;
+  --surface-3: #2A2A2A;
+  --border:    #262626;
+  --border-2:  #333333;
+
+  --text:      #E5E7EB;
+  --text-2:    #9CA3AF;
+  --text-3:    #6B7280;
+
+  --accent:    #8B7EC8;
+  --accent-2:  #7B6EB8;
+  --accent-bg: rgba(139, 126, 200, 0.08);
+  --accent-border: rgba(139, 126, 200, 0.2);
+
+  --success:     #6B9E7B;
+  --success-bg:  rgba(107, 158, 123, 0.08);
+  --success-border: rgba(107, 158, 123, 0.2);
+
+  --danger:      #C27070;
+  --danger-bg:   rgba(194, 112, 112, 0.08);
+  --danger-border: rgba(194, 112, 112, 0.2);
+
+  --warning:     #C4A55A;
+  --warning-bg:  rgba(196, 165, 90, 0.08);
+  --warning-border: rgba(196, 165, 90, 0.2);
 
   /* ── Typography ────────────────────────────────────────────────────────── */
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* ── Type scale ────────────────────────────────────────────────────────── */
+  --text-xs:  0.75rem;
+  --text-sm:  0.875rem;
+  --text-base: 1rem;
+  --text-lg:  1.125rem;
+  --text-xl:  1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
 
   /* ── Spacing (8px grid) ───────────────────────────────────────────────── */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
-  --space-16: 64px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+  --sp-24: 96px;
+
+  /* ── Radius ────────────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 
   /* ── Motion ────────────────────────────────────────────────────────────── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 150ms;
-  --dur-normal: 250ms;
+  --dur-fast: 120ms;
+  --dur-normal: 200ms;
+  --dur-slow: 300ms;
 }
 
 /* ── Reduced motion ────────────────────────────────────────────────────── */
@@ -49,7 +84,12 @@
 
 /* ── Focus rings ───────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--cyan);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
 }
+
+/* ── Scrollbar (subtle) ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }

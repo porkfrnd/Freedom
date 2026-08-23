@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Welcome · Freedom for Dance{% endblock %}
 {% block body %}
-<div class="min-h-screen flex items-center justify-center px-4 py-12" style="background: var(--_bg, #0B0A14)">
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
   <div class="w-full max-w-lg">
     <div class="text-center mb-8">
       {% set logo_class = 'h-12 w-auto mx-auto mb-4' %}{% include "partials/logo.html" %}
@@ -12,9 +12,8 @@
     <form method="POST" action="{{ url_for('settings.complete_onboarding') }}" class="card p-6 space-y-6">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-      {# Avatar color #}
       <div>
-        <label class="block text-sm font-medium mb-2">Pick your avatar color</label>
+        <label class="text-sm font-medium mb-2 block">Pick your avatar color</label>
         <div class="flex gap-3 justify-center">
           {% for key, label, hex in avatar_colors %}
             <button type="button" data-avatar-color="{{ key }}" data-hex="{{ hex }}"
@@ -26,21 +25,19 @@
         <input type="hidden" name="avatar_color" id="onboard_avatar_color" value="{{ avatar_colors[0][0] }}">
       </div>
 
-      {# Display name #}
       <div>
-        <label for="onboard_name" class="block text-sm font-medium mb-1.5">What should we call you?</label>
+        <label for="onboard_name" class="text-sm font-medium mb-1.5 block">What should we call you?</label>
         <input type="text" id="onboard_name" name="display_name" maxlength="32"
                placeholder="Your display name" class="input-field w-full text-center text-lg">
       </div>
 
-      {# Dance styles #}
       <div>
-        <label class="block text-sm font-medium mb-2">What do you dance? (pick as many as you want)</label>
+        <label class="text-sm font-medium mb-2 block">What do you dance? (pick as many as you want)</label>
         <div class="flex flex-wrap gap-2 justify-center">
           {% for style in dance_styles %}
             <label class="cursor-pointer select-none">
               <input type="checkbox" name="dance_styles" value="{{ style }}" class="hidden">
-              <span class="onboard-style px-3 py-1.5 rounded-full text-xs font-medium border transition-all border-white/10 text-muted hover:border-white/20">{{ style }}</span>
+              <span class="onboard-style px-3 py-1.5 rounded text-xs font-medium border transition-all border-border text-muted hover:border-border-2">{{ style }}</span>
             </label>
           {% endfor %}
         </div>
@@ -70,8 +67,8 @@
     cb.addEventListener("change", function() {
       var span = this.nextElementSibling;
       span.className = this.checked
-        ? "onboard-style px-3 py-1.5 rounded-full text-xs font-medium border transition-all bg-violet/15 border-violet/40 text-violet"
-        : "onboard-style px-3 py-1.5 rounded-full text-xs font-medium border transition-all border-white/10 text-muted hover:border-white/20";
+        ? "onboard-style px-3 py-1.5 rounded text-xs font-medium border transition-all bg-accent-bg border-accent-border text-accent"
+        : "onboard-style px-3 py-1.5 rounded text-xs font-medium border transition-all border-border text-muted hover:border-border-2";
     });
   });
 })();

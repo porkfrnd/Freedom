@@ -4,18 +4,13 @@
 
 {% block panel %}
 <div class="max-w-2xl mx-auto">
-
-  {# ── Profile card ────────────────────────────────────────────────────── #}
   <div class="card p-8 mb-6">
     <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-      {# Avatar #}
-      <div class="w-20 h-20 rounded-full border-2 flex items-center justify-center font-display font-bold text-2xl shrink-0
-                  {{ profile_user.avatar_bg }}">
+      <div class="avatar avatar-lg shrink-0 {{ profile_user.avatar_bg }}">
         {{ profile_user.avatar_initial }}
       </div>
 
       <div class="flex-1 min-w-0 text-center sm:text-left">
-        {# Name + badges #}
         <div class="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
           <h1 class="font-display text-xl font-bold">{{ profile_user.name }}</h1>
           {% if profile_user.is_admin %}
@@ -25,62 +20,54 @@
           {% endif %}
         </div>
         <p class="text-muted text-sm mt-0.5">@{{ profile_user.username }}</p>
-
-        {# UID #}
         <p class="text-xs text-muted font-mono mt-2">{{ profile_user.uid_display }}</p>
 
-        {# Bio #}
         {% if profile_user.bio %}
           <p class="text-sm leading-relaxed mt-3">{{ profile_user.bio }}</p>
         {% endif %}
 
-        {# Dance styles #}
         {% if profile_user.dance_styles %}
           <div class="flex flex-wrap gap-1.5 mt-3 justify-center sm:justify-start">
             {% for style in profile_user.dance_styles %}
-              <span class="px-2 py-0.5 rounded-full text-xs bg-violet/10 border border-violet/20 text-violet">{{ style }}</span>
+              <span class="px-2 py-0.5 rounded text-xs bg-accent-bg border border-accent-border text-accent">{{ style }}</span>
             {% endfor %}
           </div>
         {% endif %}
 
-        {# Social links #}
         {% if profile_user.instagram or profile_user.youtube or profile_user.tiktok %}
           <div class="flex items-center gap-3 mt-3 justify-center sm:justify-start">
             {% if profile_user.instagram %}
               <a href="https://instagram.com/{{ profile_user.instagram.lstrip('@') }}" target="_blank" rel="noopener"
-                 class="text-muted hover:text-magenta transition-colors text-sm" title="Instagram">
-                📷 {{ profile_user.instagram }}
+                 class="text-muted hover:text-accent transition-colors text-sm">
+                <i data-lucide="instagram" class="w-4 h-4 inline"></i> {{ profile_user.instagram }}
               </a>
             {% endif %}
             {% if profile_user.youtube %}
               <a href="https://youtube.com/@{{ profile_user.youtube.lstrip('@') }}" target="_blank" rel="noopener"
-                 class="text-muted hover:text-danger transition-colors text-sm" title="YouTube">
-                🎬 {{ profile_user.youtube }}
+                 class="text-muted hover:text-danger transition-colors text-sm">
+                <i data-lucide="youtube" class="w-4 h-4 inline"></i> {{ profile_user.youtube }}
               </a>
             {% endif %}
             {% if profile_user.tiktok %}
               <a href="https://tiktok.com/@{{ profile_user.tiktok.lstrip('@') }}" target="_blank" rel="noopener"
-                 class="text-muted hover:text-cyan transition-colors text-sm" title="TikTok">
-                🎵 {{ profile_user.tiktok }}
+                 class="text-muted hover:text-accent transition-colors text-sm">
+                <i data-lucide="music" class="w-4 h-4 inline"></i> {{ profile_user.tiktok }}
               </a>
             {% endif %}
           </div>
         {% endif %}
 
-        {# Join date #}
         {% if profile_user.show_join_date %}
           <p class="text-xs text-muted mt-3">Member since {{ profile_user.created_at.strftime('%B %d, %Y') }}</p>
         {% endif %}
       </div>
 
-      {# Edit link (own profile) #}
       {% if is_own %}
-        <a href="{{ url_for('settings.settings') }}" class="btn-ghost text-sm shrink-0">✏️ Edit profile</a>
+        <a href="{{ url_for('settings.settings') }}" class="btn-ghost text-sm shrink-0"><i data-lucide="pencil" class="w-4 h-4 inline"></i> Edit profile</a>
       {% endif %}
     </div>
   </div>
 
-  {# ── Stats ───────────────────────────────────────────────────────────── #}
   {% if profile_user.show_activity %}
     <div class="grid grid-cols-3 gap-4 mb-6">
       <div class="card p-4 text-center">
@@ -97,7 +84,6 @@
       </div>
     </div>
 
-    {# ── Recent playlists ──────────────────────────────────────────────── #}
     {% set public_playlists = profile_user.playlists | selectattr('is_public') | list %}
     {% if public_playlists %}
       <section class="mb-6">
@@ -105,8 +91,8 @@
         <div class="space-y-2">
           {% for p in public_playlists[:5] %}
             <a href="{{ url_for('dashboard.playlist_view', playlist_id=p.id) }}"
-               class="card p-4 flex items-center gap-3 hover:border-violet/30 transition-colors block">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-muted shrink-0"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+               class="card p-4 flex items-center gap-3 hover:border-accent-border transition-colors block">
+              <i data-lucide="music" class="w-[18px] h-[18px] text-muted shrink-0"></i>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold truncate">{{ p.name }}</p>
                 <p class="text-xs text-muted">{{ p.track_count }} track{{ 's' if p.track_count != 1 }}</p>
@@ -118,7 +104,6 @@
     {% endif %}
   {% endif %}
 
-  {# ── Back link ───────────────────────────────────────────────────────── #}
   <a href="{{ url_for('dashboard.home') }}" class="text-sm text-muted hover:text-paper transition-colors">← Back to home</a>
 </div>
 {% endblock %}

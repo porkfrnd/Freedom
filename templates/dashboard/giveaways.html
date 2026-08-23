@@ -38,16 +38,14 @@
               {% if g.description %}
                 <p class="text-muted text-sm leading-relaxed mt-1.5">{{ g.description }}</p>
               {% endif %}
-
               <div class="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted">
                 <span>{{ g.entrants | length }} entrant{{ 's' if g.entrants | length != 1 }}</span>
                 {% if g.has_entered(my_user_id) %}
                   <span class="badge badge-success">You're in</span>
                 {% endif %}
               </div>
-
               {% if g.winners %}
-                <div class="mt-4 pt-4 border-t border-white/5">
+                <div class="mt-4 pt-4 border-t border-border">
                   <p class="text-xs text-muted mb-2">Winners:</p>
                   <div class="flex flex-wrap gap-2">
                     {% for winner_id in g.winners %}
@@ -57,7 +55,6 @@
                 </div>
               {% endif %}
             </div>
-
             <div class="shrink-0 flex flex-col gap-2">
               {% if g.status == 'ACTIVE' and not g.has_ended and not g.has_entered(my_user_id) %}
                 <form method="POST" action="{{ url_for('dashboard.enter_giveaway', giveaway_id=g.id) }}">
@@ -84,29 +81,28 @@
   {% endif %}
 </div>
 
-{# ── New giveaway modal (admin) ────────────────────────────────────────── #}
 {% if can_post %}
 <div id="new-giveaway" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="New giveaway">
   <div class="absolute inset-0 bg-black/60" data-modal-close="new-giveaway"></div>
-  <div class="relative bg-[#151321] border border-white/10 rounded-card w-full max-w-lg p-6 shadow-2xl">
+  <div class="relative bg-surface border border-border rounded-md w-full max-w-lg p-6">
     <h2 class="font-display font-bold text-lg mb-4">Post a giveaway</h2>
     <form method="POST" action="{{ url_for('dashboard.create_giveaway') }}" class="space-y-4">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div>
-        <label for="prize" class="block text-sm font-medium mb-1.5">Prize</label>
+        <label for="prize">Prize</label>
         <input type="text" id="prize" name="prize" required maxlength="60" placeholder="e.g. Free entry to the next showcase" class="input-field w-full">
       </div>
       <div>
-        <label for="description" class="block text-sm font-medium mb-1.5">Details <span class="text-muted font-normal">(optional)</span></label>
+        <label for="description">Details <span class="text-muted font-normal">(optional)</span></label>
         <textarea id="description" name="description" rows="3" maxlength="300" placeholder="How to enter, what it's for…" class="input-field w-full resize-y"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label for="deadline" class="block text-sm font-medium mb-1.5">End date <span class="text-muted font-normal">(optional)</span></label>
+          <label for="deadline">End date <span class="text-muted font-normal">(optional)</span></label>
           <input type="datetime-local" id="deadline" name="deadline" class="input-field w-full">
         </div>
         <div>
-          <label for="num_winners" class="block text-sm font-medium mb-1.5">Winners</label>
+          <label for="num_winners">Winners</label>
           <input type="number" id="num_winners" name="num_winners" min="1" max="20" value="1" class="input-field w-full">
         </div>
       </div>

@@ -10,17 +10,16 @@
   </div>
 
   <div class="grid gap-6 md:grid-cols-3">
-    {# ── Challenges created ────────────────────────────────────────── #}
     <div class="card p-5">
       <h2 class="font-display font-bold text-sm mb-3 flex items-center gap-2">
-        <span class="text-lg">🏆</span> Challenges
+        <i data-lucide="trophy" class="w-5 h-5 text-warning"></i> Challenges
       </h2>
       {% if challenge_leaders %}
         <div class="space-y-2">
           {% for user, count in challenge_leaders %}
-            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-violet transition-colors">
+            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-accent transition-colors">
               <span class="text-muted font-mono text-xs w-4">{{ loop.index }}.</span>
-              <span class="w-6 h-6 rounded-full border flex items-center justify-center font-display text-[10px] shrink-0 {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
+              <span class="avatar avatar-sm {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
               <span class="truncate flex-1">{{ user.name }}</span>
               <span class="font-mono text-muted text-xs">{{ count }}</span>
             </a>
@@ -31,17 +30,16 @@
       {% endif %}
     </div>
 
-    {# ── Playlists created ─────────────────────────────────────────── #}
     <div class="card p-5">
       <h2 class="font-display font-bold text-sm mb-3 flex items-center gap-2">
-        <span class="text-lg">🎵</span> Playlists
+        <i data-lucide="music" class="w-5 h-5 text-accent"></i> Playlists
       </h2>
       {% if playlist_leaders %}
         <div class="space-y-2">
           {% for user, count in playlist_leaders %}
-            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-violet transition-colors">
+            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-accent transition-colors">
               <span class="text-muted font-mono text-xs w-4">{{ loop.index }}.</span>
-              <span class="w-6 h-6 rounded-full border flex items-center justify-center font-display text-[10px] shrink-0 {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
+              <span class="avatar avatar-sm {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
               <span class="truncate flex-1">{{ user.name }}</span>
               <span class="font-mono text-muted text-xs">{{ count }}</span>
             </a>
@@ -52,17 +50,16 @@
       {% endif %}
     </div>
 
-    {# ── Giveaways created ─────────────────────────────────────────── #}
     <div class="card p-5">
       <h2 class="font-display font-bold text-sm mb-3 flex items-center gap-2">
-        <span class="text-lg">🎁</span> Giveaways
+        <i data-lucide="gift" class="w-5 h-5 text-success"></i> Giveaways
       </h2>
       {% if giveaway_leaders %}
         <div class="space-y-2">
           {% for user, count in giveaway_leaders %}
-            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-violet transition-colors">
+            <a href="{{ url_for('settings.user_profile', user_id=user.id) }}" class="flex items-center gap-2 text-sm hover:text-accent transition-colors">
               <span class="text-muted font-mono text-xs w-4">{{ loop.index }}.</span>
-              <span class="w-6 h-6 rounded-full border flex items-center justify-center font-display text-[10px] shrink-0 {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
+              <span class="avatar avatar-sm {{ user.avatar_bg }}">{{ user.avatar_initial }}</span>
               <span class="truncate flex-1">{{ user.name }}</span>
               <span class="font-mono text-muted text-xs">{{ count }}</span>
             </a>

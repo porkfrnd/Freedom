@@ -4,13 +4,11 @@
 
 {% block panel %}
 <div class="max-w-3xl">
-
   <div class="mb-8">
     <h1 class="font-display text-xl font-bold">User management</h1>
     <p class="text-muted text-sm mt-1">Search by UID, promote teachers, manage roles.</p>
   </div>
 
-  {# ── Search by UID ──────────────────────────────────────────────────── #}
   <div class="card p-5 mb-8">
     <h2 class="font-display font-bold text-sm mb-3">Find a user by UID</h2>
     <form method="GET" action="{{ url_for('dashboard.admin_users') }}" class="flex gap-2">
@@ -19,9 +17,9 @@
     </form>
 
     {% if found_user %}
-      <div class="mt-4 p-4 rounded-card bg-violet/8 border border-violet/20">
+      <div class="mt-4 p-4 rounded bg-accent-bg border border-accent-border">
         <div class="flex items-center gap-4">
-          <span class="w-11 h-11 rounded-full bg-violet/20 border border-violet/30 flex items-center justify-center font-display font-bold text-violet">
+          <span class="avatar avatar-md bg-accent">
             {{ found_user.username[:1] | upper }}
           </span>
           <div class="flex-1 min-w-0">
@@ -66,19 +64,18 @@
         </div>
       </div>
     {% elif search_uid %}
-      <div class="mt-4 p-4 rounded-card bg-danger/8 border border-danger/20">
+      <div class="mt-4 p-4 rounded bg-danger-bg border border-danger-border">
         <p class="text-sm">No user found with UID <span class="font-mono font-bold">{{ search_uid }}</span>.</p>
       </div>
     {% endif %}
   </div>
 
-  {# ── All users ───────────────────────────────────────────────────────── #}
   <div>
     <h2 class="font-display font-bold mb-4">All users</h2>
     <div class="space-y-2">
       {% for u in users %}
         <div class="card p-4 flex items-center gap-4">
-          <span class="w-9 h-9 rounded-full bg-violet/20 border border-violet/30 flex items-center justify-center font-display font-bold text-sm text-violet shrink-0">
+          <span class="avatar avatar-md bg-accent shrink-0">
             {{ u.username[:1] | upper }}
           </span>
           <div class="flex-1 min-w-0">
@@ -101,18 +98,18 @@
             {% if not u.is_admin and not u.is_teacher %}
               <form method="POST" action="{{ url_for('dashboard.promote_teacher', user_id=u.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="text-xs text-violet hover:underline">+ Teacher</button>
+                <button type="submit" class="text-xs text-accent hover:underline">+ Teacher</button>
               </form>
             {% elif u.is_teacher %}
               <form method="POST" action="{{ url_for('dashboard.demote_teacher', user_id=u.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="text-xs text-muted hover:underline">− Teacher</button>
+                <button type="submit" class="text-xs text-muted hover:underline">- Teacher</button>
               </form>
             {% endif %}
             {% if u.id != my_user_id %}
               <form method="POST" action="{{ url_for('dashboard.toggle_admin', user_id=u.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="text-xs text-muted hover:underline">{% if u.is_admin %}− Admin{% else %}+ Admin{% endif %}</button>
+                <button type="submit" class="text-xs text-muted hover:underline">{% if u.is_admin %}- Admin{% else %}+ Admin{% endif %}</button>
               </form>
             {% endif %}
           </div>

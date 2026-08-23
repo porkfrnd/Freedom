@@ -17,10 +17,10 @@ A community platform for dancers — challenges, giveaways, playlists, and the p
 - **Leaderboard** — community stats ranked by challenges, playlists, and giveaways
 - **User profiles** — avatar, bio, dance styles, social links, activity stats
 - **Settings** — change password, email, username, avatar color, accent theme, privacy controls
-- **Dark/Light mode** — toggle with 6 accent color options
-- **Teacher role** — teachers can post challenges; admins manage roles
-- **Admin panel** — user management, role promotion, UID search
+- **Pure Matte dark mode** — redesigned from the ground up with flat surfaces, 1px borders, and a muted lavender accent. No gradients, no glass, no neumorphism.
 - **Onboarding** — first-time flow to pick dance styles and avatar color
+
+---
 
 ## Tech stack
 
@@ -28,8 +28,11 @@ A community platform for dancers — challenges, giveaways, playlists, and the p
 - **Auth:** Email/password with PBKDF2 (werkzeug) + JWT session cookies
 - **Database:** SQLite (dev) / PostgreSQL (production via Render)
 - **Frontend:** Tailwind CSS (CDN) + vanilla JS — no framework
-- **Fonts:** Space Grotesk (display) + Inter (body)
+- **Design system:** Pure Matte dark tokens, 8px grid, Lucide icons, 4-6px radius, muted accent palette
+- **Fonts:** Inter (body)
 - **Deploy:** Render (single-service, `gunicorn`)
+
+---
 
 ## Quick start
 
@@ -58,6 +61,8 @@ flask run
 
 Opens at `http://localhost:5000`.
 
+---
+
 ## Demo accounts
 
 | Account | Email | Password | Role |
@@ -66,34 +71,38 @@ Opens at `http://localhost:5000`.
 | Teacher | `teacher@freedom.dance` | `teacher123` | Can post challenges |
 | Members | `mira@`, `dante@`, `noor@freedom.dance` | `password123` | Standard members |
 
+---
+
 ## Project structure
 
 ```
-├── app.py                  # Flask app factory
-├── config.py               # Configuration (env vars)
-├── models.py               # SQLAlchemy models
-├── extensions.py           # db instance
-├── blueprints/
+├ app.py                  # Flask app factory
+├ config.py               # Configuration (env vars)
+├ models.py               # SQLAlchemy models
+├ extensions.py           # db instance
+├ blueprints/
 │   ├── main.py             # Landing page
 │   ├── auth.py             # Register / login / logout
 │   ├── dashboard.py        # Community hub (challenges, giveaways, etc.)
 │   ├── settings.py         # User settings + profile pages
 │   └── api.py              # Playlist REST API
-├── services/
+├ services/
 │   └── auth.py             # JWT token creation/verification
-├── utils/
+├ utils/
 │   ├── decorators.py       # require_login, require_admin, require_teacher
 │   ├── logging.py          # Structured logging
 │   ├── ratelimit.py        # Simple rate limiter
 │   └── security.py         # CSRF protection
-├── templates/              # Jinja2 templates
-├── static/                 # CSS, JS, images
-├── tests/                  # pytest test suite
-├── scripts/
+├ templates/              # Jinja2 templates
+├ static/                 # CSS, JS, images
+├ tests/                  # pytest test suite
+├ scripts/
 │   └── seed_db.py          # Demo data seeder
-├── migrations/             # Alembic (Postgres migrations)
+├ migrations/             # Alembic (Postgres migrations)
 └── requirements.txt
 ```
+
+---
 
 ## Running tests
 
@@ -101,12 +110,16 @@ Opens at `http://localhost:5000`.
 FFD_SKIP_APP_CREATION=1 FLASK_ENV=development python -m pytest tests/ -q
 ```
 
+---
+
 ## Maintenance
 
 ```bash
 # Delete expired giveaways/submissions/events past their retention window
 flask prune-old-data
 ```
+
+---
 
 ## Environment variables
 
@@ -119,6 +132,8 @@ Optional:
 
 - `FLASK_ENV` — `development` or `production`
 - `JWT_TTL_HOURS` — Session lifetime (default: 24)
+
+---
 
 ## License
 

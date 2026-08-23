@@ -28,7 +28,6 @@
     <p class="text-xs text-muted mt-1">Posted by {{ challenge.creator.name if challenge.creator else 'Unknown' }}</p>
   </div>
 
-  {# ── Submit form ──────────────────────────────────────────────────── #}
   {% if not challenge.has_ended and challenge.status == 'ACTIVE' %}
     {% if not user_submission %}
       <div class="card p-6 mb-6">
@@ -43,21 +42,20 @@
         </form>
       </div>
     {% else %}
-      <div class="card p-4 mb-6 bg-violet/5 border-violet/20">
-        <p class="text-sm">✅ You already submitted — <a href="{{ user_submission.url }}" target="_blank" rel="noopener" class="text-violet hover:underline">view your submission</a></p>
+      <div class="card p-4 mb-6 bg-accent-bg border border-accent-border">
+        <p class="text-sm">You already submitted — <a href="{{ user_submission.url }}" target="_blank" rel="noopener" class="text-accent hover:underline">view your submission</a></p>
       </div>
     {% endif %}
   {% endif %}
 
-  {# ── Submissions gallery ──────────────────────────────────────────── #}
   <div>
     <h2 class="font-display font-bold mb-3">Submissions ({{ submissions | length }})</h2>
     {% if submissions %}
       <div class="space-y-3">
         {% for sub in submissions %}
           <div class="card p-4 flex items-center gap-4">
-            <span class="w-9 h-9 rounded-full border flex items-center justify-center font-display font-bold text-sm shrink-0
-                         {{ users[sub.user_id].avatar_bg if sub.user_id in users else 'bg-violet/20 border-violet/30 text-violet' }}">
+            <span class="avatar avatar-md shrink-0
+                         {{ users[sub.user_id].avatar_bg if sub.user_id in users else 'bg-accent' }}">
               {{ users[sub.user_id].avatar_initial if sub.user_id in users else '?' }}
             </span>
             <div class="flex-1 min-w-0">

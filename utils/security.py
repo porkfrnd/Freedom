@@ -15,6 +15,7 @@ JWT cookie), we use the classic *signed double-submit* pattern:
 """
 
 from __future__ import annotations
+from functools import lru_cache
 
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
@@ -49,6 +50,7 @@ def verify_csrf_token(secret_key: str, cookie_value: str | None, submitted: str 
         return False
 
 
+@lru_cache(maxsize=128)
 def csrf_cookie_valid(secret_key: str, cookie_value: str | None) -> bool:
     """True when the cookie itself still carries a fresh, valid signature.
 

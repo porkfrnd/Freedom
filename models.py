@@ -448,18 +448,12 @@ def prune_old_data(session) -> dict[str, int]:
             g.entrants = []
             g.winners = []
             cleared += 1
-    if cleared:
-        session.commit()
-    pruned["giveaway_entrants_cleared"] = cleared
 
     # Submissions older than 180 days
     sub_cutoff = now - timedelta(days=180)
     deleted_subs = session.query(Submission).filter(
         Submission.created_at < sub_cutoff
     ).delete(synchronize_session=False)
-    if deleted_subs:
-        session.commit()
-    pruned["submissions_deleted"] = deleted_subs
 
     # Events that ended more than 30 days ago
     evt_cutoff = now - timedelta(days=30)
@@ -467,8 +461,12 @@ def prune_old_data(session) -> dict[str, int]:
         Event.ends_at.isnot(None),
         Event.ends_at < evt_cutoff,
     ).delete(synchronize_session=False)
-    if deleted_events:
-        session.commit()
+
+    # Single commit at the end instead of three separate commits
+    session.commit()
+
+    pruned["giveaway_entrants_cleared"] = cleared
+    pruned["submissions_deleted"] = deleted_subs
     pruned["events_deleted"] = deleted_events
 
     return pruned

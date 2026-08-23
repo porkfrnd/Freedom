@@ -257,7 +257,7 @@ def create_announcement():
 @require_login
 def challenges():
     from models import Submission
-    rows = Challenge.query.order_by(Challenge.created_at.desc()).limit(50).all()
+    rows = Challenge.query.options(joinedload(Challenge.creator)).order_by(Challenge.created_at.desc()).limit(50).all()
     can_post = g.claims.get("is_admin") or g.claims.get("is_teacher")
     # Prefetch submission counts
     sub_counts = {}
@@ -345,8 +345,8 @@ def giveaways():
     winner_ids = {w for g in rows for w in (g.winners or [])}
     names = {}
     if winner_ids:
-        for u in User.query.filter(User.id.in_(winner_ids)).all():
-            names[u.id] = u.name
+        for uid, uname in User.query.with_entities(User.id, User.display_name).filter(User.id.in_(winner_ids)).all():
+            names[uid] = uname or None
     return render_template(
         "dashboard/giveaways.html",
         giveaways=rows,
