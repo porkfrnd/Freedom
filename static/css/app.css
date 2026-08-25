@@ -507,9 +507,16 @@ label, .label {
 
 /* ── Avatar color utilities (matte versions) ────────────────────────────── */
 .bg-accent    { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
+.bg-info      { background: var(--info-bg); color: var(--info); border-color: var(--info-border); }
+.bg-teal      { background: var(--teal-bg); color: var(--teal); border-color: var(--teal-border); }
 .bg-success   { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
 .bg-danger    { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
 .bg-warning   { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+
+/* ── Brand logo (dark PNG lifted for dark backgrounds) ──────────────────── */
+.brand-logo {
+  filter: invert(1) hue-rotate(180deg) brightness(1.05);
+}
 
 /* ── Editorial serif accent ─────────────────────────────────────────────── */
 .serif-it {
@@ -547,6 +554,7 @@ label, .label {
 .sticker svg.ring {
   width: 100%;
   height: 100%;
+  overflow: visible;
   animation: sticker-spin 14s linear infinite;
 }
 .sticker .sticker-core {

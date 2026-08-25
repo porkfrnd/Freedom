@@ -33,6 +33,14 @@
   --warning-bg:  rgba(196, 165, 90, 0.08);
   --warning-border: rgba(196, 165, 90, 0.2);
 
+  --info:        #7A9EC2;
+  --info-bg:     rgba(122, 158, 194, 0.08);
+  --info-border: rgba(122, 158, 194, 0.2);
+
+  --teal:        #6FA8A8;
+  --teal-bg:     rgba(111, 168, 168, 0.08);
+  --teal-border: rgba(111, 168, 168, 0.2);
+
   /* ── Typography ────────────────────────────────────────────────────────── */
   --font-body:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

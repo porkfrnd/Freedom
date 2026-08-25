@@ -50,7 +50,7 @@
       {% endif %}
     </div>
     <div class="mt-auto space-y-1">
-      <a href="{{ url_for('settings.settings') }}" class="{% if endpoint == 'settings.settings' %}active{% endif %}">
+      <a href="{{ url_for('settings.settings') }}" class="side-nav-item {% if endpoint == 'settings.settings' %}active{% endif %}">
         <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
         Settings
       </a>

@@ -73,13 +73,20 @@ SUBMISSION_URL_MAX = 200
 SUBMISSION_NOTE_MAX = 150
 
 AVATAR_COLORS = (
-    ("violet", "Violet", "#7B2FF7"),
-    ("magenta", "Magenta", "#FF2E9A"),
-    ("cyan", "Cyan", "#34E4EA"),
-    ("green", "Green", "#10B981"),
-    ("amber", "Amber", "#F59E0B"),
-    ("rose", "Rose", "#F43F5E"),
+    ("lavender", "Lavender", "#8B7EC8"),
+    ("blue", "Blue", "#7A9EC2"),
+    ("teal", "Teal", "#6FA8A8"),
+    ("sage", "Sage", "#6B9E7B"),
+    ("amber", "Amber", "#C4A55A"),
+    ("rose", "Rose", "#C27070"),
 )
+
+_AVATAR_LEGACY = {
+    "violet": "lavender",
+    "magenta": "rose",
+    "cyan": "teal",
+    "green": "sage",
+}
 
 DANCE_STYLES = (
     "Hip-Hop", "Contemporary", "Freestyle", "Breaking",
@@ -194,14 +201,15 @@ class User(db.Model):
     @property
     def avatar_bg(self) -> str:
         COLORS = {
-            "violet": "bg-violet/20 border-violet/30 text-violet",
-            "magenta": "bg-magenta/20 border-magenta/30 text-magenta",
-            "cyan": "bg-cyan/20 border-cyan/30 text-cyan",
-            "green": "bg-green-500/20 border-green-500/30 text-green-500",
-            "amber": "bg-amber-500/20 border-amber-500/30 text-amber-500",
-            "rose": "bg-rose-500/20 border-rose-500/30 text-rose-500",
+            "lavender": "bg-accent",
+            "blue": "bg-info",
+            "teal": "bg-teal",
+            "sage": "bg-success",
+            "amber": "bg-warning",
+            "rose": "bg-danger",
         }
-        return COLORS.get(self.avatar_color, COLORS["violet"])
+        key = _AVATAR_LEGACY.get(self.avatar_color, self.avatar_color)
+        return COLORS.get(key, COLORS["lavender"])
 
     @property
     def avatar_initial(self) -> str:

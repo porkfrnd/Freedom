@@ -9,28 +9,37 @@ A community platform for dancers — challenges, giveaways, playlists, and the p
 ## What it does
 
 - **Challenges** — admins and teachers post dance challenges with deadlines; members submit YouTube/Instagram links
-- **Giveaways** — members enter with one click, winners drawn fairly and shown in the open
-- **Announcements** — categorized news (Challenge / Change / Event / General)
+- **Giveaways** — members enter with one click, winners drawn fairly and shown in the open (deadline-based or open-ended, admin draws whenever)
+- **Announcements** — categorized news (Challenge / Change / Event / General) with filter pills
 - **Playlists** — shared music sets with an embedded YouTube player — click a track, it plays in-page. Save your favorites with the heart button
 - **Events** — session calendar with RSVP (going / maybe)
 - **Members** — searchable directory with dance style filters
 - **Leaderboard** — community stats ranked by challenges, playlists, and giveaways
-- **User profiles** — avatar, bio, dance styles, social links, activity stats
-- **Settings** — change password, email, username, avatar color, accent theme, privacy controls
-- **Pure Matte dark mode** — redesigned from the ground up with flat surfaces, 1px borders, and a muted lavender accent. No gradients, no glass, no neumorphism.
+- **User profiles** — avatar, bio, dance styles, social links, activity stats, privacy controls
+- **Settings** — change password, email, username, avatar color, bio, social links
+- **Teacher role** — teachers can post challenges; admins manage roles via UID search
+- **Admin panel** — user management, promote/demote teachers, toggle admins
 - **Onboarding** — first-time flow to pick dance styles and avatar color
 
----
+## Design system
+
+The UI is a **Pure Matte** dark theme — flat surfaces, 1px borders, no gradients, no glassmorphism:
+
+- Base `#111111`, cards `#1A1A1A`, borders `#262626`
+- Muted accent palette: lavender `#8B7EC8`, blue, teal, sage, amber, rose
+- Editorial serif accents (Instrument Serif italic) for personality moments
+- Lucide icons via CDN, Inter for UI type
+- Micro-interactions: card lifts, pulsing live badges, marquee ticker, rotating hero badge, film grain overlay
+- Honest zero-states: founding-member block replaces fake stats on an empty community; "House rules" instead of fabricated testimonials
 
 ## Tech stack
 
 - **Backend:** Flask + SQLAlchemy + Jinja2
-- **Auth:** Email/password with PBKDF2 (werkzeug) + JWT session cookies
-- **Database:** SQLite (dev) / PostgreSQL (production via Render)
-- **Frontend:** Tailwind CSS (CDN) + vanilla JS — no framework
-- **Design system:** Pure Matte dark tokens, 8px grid, Lucide icons, 4-6px radius, muted accent palette
-- **Fonts:** Inter (body)
-- **Deploy:** Render (single-service, `gunicorn`)
+- **Auth:** Email/password with PBKDF2 (werkzeug) + JWT session cookies, CSRF double-submit with rotation, login rate limiting
+- **Database:** SQLite (dev) / PostgreSQL via Neon (production on Render)
+- **Frontend:** Tailwind CSS (CDN) + vanilla JS — no framework, no build step
+- **Fonts:** Inter (body/UI) + Instrument Serif (editorial accents)
+- **Deploy:** Render single service (`gunicorn`), Alembic migrations on deploy
 
 ---
 
@@ -76,29 +85,33 @@ Opens at `http://localhost:5000`.
 ## Project structure
 
 ```
-├ app.py                  # Flask app factory
-├ config.py               # Configuration (env vars)
-├ models.py               # SQLAlchemy models
-├ extensions.py           # db instance
-├ blueprints/
+├── app.py                  # Flask app factory (CSRF, session refresh, rate limits)
+├── config.py               # Configuration (env vars)
+├── models.py               # SQLAlchemy models + palette/style constants
+├── extensions.py           # db instance
+├── blueprints/
 │   ├── main.py             # Landing page
 │   ├── auth.py             # Register / login / logout
 │   ├── dashboard.py        # Community hub (challenges, giveaways, etc.)
 │   ├── settings.py         # User settings + profile pages
 │   └── api.py              # Playlist REST API
-├ services/
-│   └── auth.py             # JWT token creation/verification
-├ utils/
+├── services/
+│   └── auth.py             # JWT token creation/verification (cached)
+├── utils/
 │   ├── decorators.py       # require_login, require_admin, require_teacher
 │   ├── logging.py          # Structured logging
 │   ├── ratelimit.py        # Simple rate limiter
-│   └── security.py         # CSRF protection
-├ templates/              # Jinja2 templates
-├ static/                 # CSS, JS, images
-├ tests/                  # pytest test suite
-├ scripts/
+│   ├── validate.py         # Shared validation helpers
+│   └── security.py         # CSRF protection (cached)
+├── templates/              # Jinja2 templates (Pure Matte theme)
+├── static/
+│   ├── css/tokens.css      # Design tokens (colors, spacing, motion)
+│   ├── css/app.css         # Component layer
+│   └── js/app.js           # Toasts + shared behaviors
+├── tests/                  # pytest suite (64 tests)
+├── scripts/
 │   └── seed_db.py          # Demo data seeder
-├ migrations/             # Alembic (Postgres migrations)
+├── migrations/             # Alembic (Postgres migrations)
 └── requirements.txt
 ```
 
@@ -132,6 +145,8 @@ Optional:
 
 - `FLASK_ENV` — `development` or `production`
 - `JWT_TTL_HOURS` — Session lifetime (default: 24)
+- `JWT_REFRESH_AFTER_HOURS` — Silent cookie re-issue threshold (default: 6)
+- `LOGIN_RATE_LIMIT_*` — Login throttling knobs
 
 ---
 

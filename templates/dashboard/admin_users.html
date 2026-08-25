@@ -19,7 +19,7 @@
     {% if found_user %}
       <div class="mt-4 p-4 rounded bg-accent-bg border border-accent-border">
         <div class="flex items-center gap-4">
-          <span class="avatar avatar-md bg-accent">
+          <span class="avatar avatar-md shrink-0 {{ found_user.avatar_bg }}">
             {{ found_user.username[:1] | upper }}
           </span>
           <div class="flex-1 min-w-0">
@@ -75,7 +75,7 @@
     <div class="space-y-2">
       {% for u in users %}
         <div class="card p-4 flex items-center gap-4">
-          <span class="avatar avatar-md bg-accent shrink-0">
+          <span class="avatar avatar-md shrink-0 {{ u.avatar_bg }}">
             {{ u.username[:1] | upper }}
           </span>
           <div class="flex-1 min-w-0">

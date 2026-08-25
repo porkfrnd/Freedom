@@ -62,7 +62,7 @@
                   <button type="submit" class="btn-primary text-sm">Enter</button>
                 </form>
               {% endif %}
-              {% if can_post and g.status == 'ACTIVE' and g.has_ended %}
+              {% if can_post and g.status == 'ACTIVE' and (g.has_ended or not g.deadline) %}
                 <form method="POST" action="{{ url_for('dashboard.draw_giveaway', giveaway_id=g.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-primary text-sm">Draw winners</button>
