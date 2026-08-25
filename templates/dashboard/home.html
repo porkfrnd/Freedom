@@ -4,33 +4,35 @@
 
 {% block panel %}
 <div class="max-w-3xl">
-  <div class="mb-8">
-    <h1 class="font-display text-xl font-bold">What's happening</h1>
+  <div class="mb-10">
+    <h1 class="font-display text-2xl font-bold tracking-tight">What's happening</h1>
     <p class="text-muted text-sm mt-1">Challenges, giveaways, and the latest from the community.</p>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-    <div class="card p-3 text-center">
-      <p class="font-display font-bold text-lg">{{ stats.members }}</p>
-      <p class="text-muted text-[11px]">Members</p>
-    </div>
-    <div class="card p-3 text-center">
-      <p class="font-display font-bold text-lg">{{ stats.active_challenges }}</p>
-      <p class="text-muted text-[11px]">Active challenges</p>
-    </div>
-    <div class="card p-3 text-center">
-      <p class="font-display font-bold text-lg">{{ stats.open_giveaways }}</p>
-      <p class="text-muted text-[11px]">Open giveaways</p>
-    </div>
-    <div class="card p-3 text-center">
-      <p class="font-display font-bold text-lg">{{ stats.playlists }}</p>
-      <p class="text-muted text-[11px]">Playlists</p>
-    </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 border border-border rounded-md divide-x divide-y sm:divide-y-0 divide-border overflow-hidden mb-10 bg-surface/40">
+    <a href="{{ url_for('settings.members') }}" class="stat-editorial">
+      <p class="stat-value text-accent">{{ stats.members }}</p>
+      <p class="text-muted text-[11px] uppercase tracking-[0.12em] mt-1">Members</p>
+    </a>
+    <a href="{{ url_for('dashboard.challenges') }}" class="stat-editorial">
+      <p class="stat-value">{{ stats.active_challenges }}</p>
+      <p class="text-muted text-[11px] uppercase tracking-[0.12em] mt-1">Challenges</p>
+    </a>
+    <a href="{{ url_for('dashboard.giveaways') }}" class="stat-editorial">
+      <p class="stat-value">{{ stats.open_giveaways }}</p>
+      <p class="text-muted text-[11px] uppercase tracking-[0.12em] mt-1">Giveaways</p>
+    </a>
+    <a href="{{ url_for('dashboard.playlists') }}" class="stat-editorial">
+      <p class="stat-value">{{ stats.playlists }}</p>
+      <p class="text-muted text-[11px] uppercase tracking-[0.12em] mt-1">Playlists</p>
+    </a>
   </div>
 
   {% if activity %}
-    <section class="mb-10">
-      <h2 class="font-display font-bold mb-3">Recent activity</h2>
+    <section class="mb-12">
+      <div class="rule-header mb-4">
+        <h2 class="font-display font-bold shrink-0">Recent activity</h2>
+      </div>
       <div class="card divide-y divide-border">
         {% for item in activity %}
           <div class="px-4 py-3 flex items-center gap-3 text-sm">
@@ -51,15 +53,15 @@
     </section>
   {% endif %}
 
-  <section class="mb-10">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-display font-bold">Open giveaways</h2>
-      <a href="{{ url_for('dashboard.giveaways') }}" class="text-sm text-accent hover:underline">See all</a>
+  <section class="mb-12">
+    <div class="rule-header mb-4">
+      <h2 class="font-display font-bold shrink-0">Open giveaways</h2>
+      <a href="{{ url_for('dashboard.giveaways') }}" class="text-sm text-accent link-slide shrink-0">See all</a>
     </div>
     {% if giveaways %}
       <div class="grid gap-4 sm:grid-cols-2">
         {% for g in giveaways %}
-          <div class="card p-5">
+          <div class="card card-lift p-5">
             <div class="flex items-start justify-between gap-3 mb-2">
               <h3 class="font-display font-bold text-base">{{ g.prize }}</h3>
               {% if g.has_entered(my_user_id) %}
@@ -100,16 +102,16 @@
     {% endif %}
   </section>
 
-  <section class="mb-10">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-display font-bold">Active challenges</h2>
-      <a href="{{ url_for('dashboard.challenges') }}" class="text-sm text-accent hover:underline">See all</a>
+  <section class="mb-12">
+    <div class="rule-header mb-4">
+      <h2 class="font-display font-bold shrink-0">Active challenges</h2>
+      <a href="{{ url_for('dashboard.challenges') }}" class="text-sm text-accent link-slide shrink-0">See all</a>
     </div>
     {% if challenges %}
       <div class="space-y-3">
         {% for c in challenges %}
           <a href="{{ url_for('settings.challenge_detail', challenge_id=c.id) }}"
-             class="card p-5 flex items-start justify-between gap-3 hover:border-accent-border transition-colors block">
+             class="card card-lift p-5 flex items-start justify-between gap-3 block">
             <div>
               <h3 class="font-display font-bold">{{ c.title }}</h3>
               <p class="text-muted text-sm leading-relaxed mt-1">{{ c.description }}</p>
@@ -130,10 +132,10 @@
   </section>
 
   {% if upcoming_events %}
-    <section class="mb-10">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="font-display font-bold">Upcoming events</h2>
-        <a href="{{ url_for('settings.events') }}" class="text-sm text-accent hover:underline">See all</a>
+    <section class="mb-12">
+      <div class="rule-header mb-4">
+        <h2 class="font-display font-bold shrink-0">Upcoming events</h2>
+        <a href="{{ url_for('settings.events') }}" class="text-sm text-accent link-slide shrink-0">See all</a>
       </div>
       <div class="space-y-3">
         {% for ev in upcoming_events[:3] %}
@@ -154,9 +156,9 @@
   {% endif %}
 
   <section>
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-display font-bold">Latest news</h2>
-      <a href="{{ url_for('dashboard.announcements') }}" class="text-sm text-accent hover:underline">See all</a>
+    <div class="rule-header mb-4">
+      <h2 class="font-display font-bold shrink-0">Latest news</h2>
+      <a href="{{ url_for('dashboard.announcements') }}" class="text-sm text-accent link-slide shrink-0">See all</a>
     </div>
     {% if announcements %}
       <div class="space-y-3">
